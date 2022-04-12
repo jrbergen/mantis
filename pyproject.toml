@@ -1,0 +1,45 @@
+[build-system]
+requires = [
+    "setuptools>=61.*.*",
+    "wheel",
+    "importlib-metadata>=4.*.*",
+]
+python_requires = '>=3.8.*'
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tmap-defect-detector"
+version = "0.0.1"
+description = "ML-powered defect detector"
+dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: UNIX",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    ]
+requires-python = ">=3.8"
+
+# Not sure if other authors want to be mentioned by name given this repo is currently public.
+authors = [
+    { name = "Joost Bergen", email = "joost@bergensoftware.nl" },
+    ]
+license = {file = "LICENSE.txt"}
+readme = {file = "README.md", content-type = "x-rst"}
+
+[tool.setuptools]
+platforms = ["UNIX", "MacOS", "Windows"]
+
+[project.optional-dependencies]
+dev = ["pylint~=2.12.2", "black~=22.1.0"]
+
+[tool.black]
+line-length = 100
+include = '\.pyi?$'
+target-version = ['py39', 'py310']
+
