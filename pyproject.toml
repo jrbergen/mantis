@@ -43,3 +43,4 @@ line-length = 100
 include = '\.pyi?$'
 target-version = ['py39', 'py310']
 
+This is a test
