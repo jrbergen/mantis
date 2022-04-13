@@ -42,4 +42,3 @@ dev = ["pylint~=2.12.2", "black~=22.1.0"]
 line-length = 100
 include = '\.pyi?$'
 target-version = ['py39', 'py310']
-
