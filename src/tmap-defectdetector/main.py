@@ -4,6 +4,8 @@ from __future__ import annotations
 import sys
 import warnings
 
+from logger import log
+
 
 def version_check(min_py_version: tuple[int, ...] = (3, 10, 0)) -> None:
     """
@@ -18,6 +20,7 @@ def version_check(min_py_version: tuple[int, ...] = (3, 10, 0)) -> None:
             "for optimal compatibility.",
             category=UserWarning,
         )
+    log.debug(f"Python version OK: {cur_pyversion!r}")
 
 
 def cli():
