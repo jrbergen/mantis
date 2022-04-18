@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 import platform
 
-_PKG_NAME: str = "tmap-defectdetector"
+_PKG_NAME: str = "defectdetector"
 
 
 def get_appdir(dirname: str, make_if_non_exsiting: bool = True) -> Path:
