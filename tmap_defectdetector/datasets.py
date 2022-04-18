@@ -92,12 +92,15 @@ class ImageDataSet(DataSet):
             f"{type(self).__name__}.{inspect.currentframe().f_code.co_name}' implementation is not finished yet."
         )
 
+    def __len__(self) -> int:
+        return len(self.data)
+
     def __add__(self, other: ImageDataSet | ImageCollection | Image) -> ImageDataSet:
         """Currently doesn't handle data labels, which may lead to image/label sets of different sizes..."""
         match other:
             case list() | tuple():
                 if all(isinstance(item, Image) for item in other):
-                    self.data = list(set(self.data) | set(other))
+                    self.data += list(other)
                 else:
                     raise TypeError(f"All items in data to be added must be images ({Image.__qualname__} objects),"
                                     " which seems not to be the case.")
