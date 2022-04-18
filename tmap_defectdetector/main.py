@@ -37,7 +37,7 @@ def main():
     dataset_downloader.download()
 
     example_unfinished_imagedataset_obj = ImageDataSet()
-    log.info('All done!')
+    log.info("All done!")
 
 
 if __name__ == "__main__":
