@@ -1,3 +1,3 @@
 # tmap-defectdetector
 
-ML based defect detector (alpha phase).
+ML based defect detector (Project in planning phase).
