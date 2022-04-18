@@ -39,7 +39,6 @@ def pkg_setup():
             "Programming Language :: Python",
             "Programming Language :: Python :: 3.10",
         ],
-        tests_require=["pytest", "numpy~=1.22.3", "Pillow~=9.1.0"],
         packages=find_packages(),
         python_requires=">=3.10",
         entry_points={"console_scripts": ["defectdetector = tmap_defectdetector.main:main"]},

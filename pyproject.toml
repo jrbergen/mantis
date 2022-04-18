@@ -15,7 +15,8 @@ dependencies = [
     "tensorflow~=2.8.0",
     "Pillow~=9.1.0",
     "GitPython~=3.1.27",
-    "rich~=12.2.0"
+    "rich~=12.2.0",
+    "numpy~=1.22.3"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -40,6 +41,7 @@ platforms = ["UNIX", "MacOS", "Windows"]
 
 [project.optional-dependencies]
 dev = ["pylint~=2.12.2", "black~=22.1.0"]
+test = ["pytest~=7.1.1", "numpy~=1.22.3"]
 
 [tool.black]
 line-length = 100
