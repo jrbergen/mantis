@@ -92,6 +92,9 @@ class ImageDataSet(DataSet):
             f"{type(self).__name__}.{inspect.currentframe().f_code.co_name}' implementation is not finished yet."
         )
 
+    def __len__(self) -> int:
+        return len(self.data)
+
     def __add__(self, other: ImageDataSet | ImageCollection | Image) -> ImageDataSet:
         """Currently doesn't handle data labels, which may lead to image/label sets of different sizes..."""
         match other:
