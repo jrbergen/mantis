@@ -100,7 +100,7 @@ class ImageDataSet(DataSet):
         match other:
             case list() | tuple():
                 if all(isinstance(item, Image) for item in other):
-                    self.data = list(set(self.data) | set(other))
+                    self.data += list(other)
                 else:
                     raise TypeError(f"All items in data to be added must be images ({Image.__qualname__} objects),"
                                     " which seems not to be the case.")
