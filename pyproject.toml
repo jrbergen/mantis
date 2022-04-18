@@ -13,7 +13,8 @@ version = "0.0.1"
 description = "ML-powered defect detector"
 dependencies = [
     "tensorflow~=2.8.0",
-    "Pillow~=9.0",
+    "Pillow~=9.1.0",
+    "GitPython~=3.1.27",
     "rich~=12.2.0"
 ]
 classifiers = [
@@ -25,7 +26,7 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.10",
     ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 # Not sure if other authors want to be mentioned by name given this repo is currently public.
 authors = [
@@ -43,4 +44,4 @@ dev = ["pylint~=2.12.2", "black~=22.1.0"]
 [tool.black]
 line-length = 100
 include = '\.pyi?$'
-target-version = ['py39', 'py310']
+target-version = ['py310']
