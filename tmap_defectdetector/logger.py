@@ -6,7 +6,7 @@ from logging.handlers import RotatingFileHandler
 
 from rich.logging import RichHandler
 
-from config.directories import FILE_LOG
+from tmap_defectdetector.config.paths import FILE_LOG
 
 
 LOG_LEVEL: str | int = (
@@ -29,7 +29,7 @@ LOG_MAX_SIZE_BYTES: int = 10_000_000
 LOG_SHOW_PROCESS_ID: bool = False
 
 
-def _initialize__logger(log_name: str = __name__) -> logging.Logger:
+def _initialize_logger(log_name: str = __name__) -> logging.Logger:
     """
     Initializes logger (by default for the current module).
 
@@ -74,4 +74,4 @@ def _initialize__logger(log_name: str = __name__) -> logging.Logger:
     return logger
 
 
-log = _initialize__logger()
+log = _initialize_logger()
