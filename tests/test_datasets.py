@@ -24,16 +24,16 @@ class TestImageDataSet:
     dset_b = ImageDataSet(data=img_tup)
 
     def test_amplify_data(self):
-        assert True, "Test not yet implemented"
+        assert False, "Test not yet implemented"
 
     def test_generate_mirrors(self):
-        assert True, "Test not yet implemented"
+        assert False, "Test not yet implemented"
 
     def test_generate_translation(self):
-        assert True, "Test not yet implemented"
+        assert False, "Test not yet implemented"
 
     def test_generate_rotation(self):
-        assert True, "Test not yet implemented"
+        assert False, "Test not yet implemented"
 
     def test__add__(self):
         assert self.HALF_DSET_SZ == round(
