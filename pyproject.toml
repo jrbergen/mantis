@@ -11,7 +11,13 @@ build-backend = "setuptools.build_meta"
 name = "tmap-defect-detector"
 version = "0.0.1"
 description = "ML-powered defect detector"
-dependencies = []
+dependencies = [
+    "tensorflow~=2.8.0",
+    "Pillow~=9.1.0",
+    "GitPython~=3.1.27",
+    "rich~=12.2.0",
+    "numpy~=1.22.3"
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: UNIX",
@@ -19,11 +25,9 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 # Not sure if other authors want to be mentioned by name given this repo is currently public.
 authors = [
@@ -37,9 +41,9 @@ platforms = ["UNIX", "MacOS", "Windows"]
 
 [project.optional-dependencies]
 dev = ["pylint~=2.12.2", "black~=22.1.0"]
+test = ["pytest~=7.1.1", "numpy~=1.22.3"]
 
 [tool.black]
 line-length = 100
 include = '\.pyi?$'
-target-version = ['py39', 'py310']
-
+target-version = ['py310']
