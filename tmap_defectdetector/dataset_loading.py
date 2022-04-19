@@ -64,7 +64,6 @@ class DatasetDownloaderGit(DatasetDownloader):
         target_branch: str = "master",
     ) -> None:
         """Downloads defect detection dataset from (remote) repository URL."""
-        # tgt_rootdir.mkdir(exist_ok=True, parents=True)
         repo, origin = self._initialize_repository(
             repo_dir=tgt_rootdir / self._dataset_name, remote_name=remote_name
         )
@@ -77,7 +76,7 @@ class DatasetDownloaderGit(DatasetDownloader):
         repo = Repo.init(repo_dir)
         try:
             origin = repo.remotes[remote_name]
-        except KeyError:
+        except (KeyError, IndexError):
             # Repo doesn't have this remote yet... Initialize it.
             origin = repo.create_remote(remote_name, self.url)
         return repo, origin
