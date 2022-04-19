@@ -12,3 +12,8 @@ Pre-processing
 Run detection or classification
     |
    \/
+
+
+MERGE
+CONFLICT
+ESTABLISHED
