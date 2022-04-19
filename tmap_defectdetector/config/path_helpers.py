@@ -24,8 +24,10 @@ def get_appdir(dirname: str, make_if_non_exsiting: bool = True) -> Path:
         case "Linux":
             dir_ = Path.home() / f".{dirname}"  # e.g. /home/$USER/.tmap-detector
         case "Windows":
+            if (appdata_dir := os.getenv("LOCALAPPDATA")) is None:
+                raise EnvironmentError("LOCALAPPDATA environment variable does not seem to be set.")
             dir_ = Path(
-                os.getenv("LOCALAPPDATA"), dirname
+                str(appdata_dir), dirname
             )  # e.g. C:/Users/$USER/AppData/Local/tmap-detector
         case "Darwin":
             dir_ = (
@@ -52,4 +54,3 @@ def get_appdir(dirname: str, make_if_non_exsiting: bool = True) -> Path:
 def get_datadir(pkg_name: str) -> Path:
     """Gets directory to store dataset(s) in local application directory."""
     return get_appdir(dirname=pkg_name) / "data"
-
