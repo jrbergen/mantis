@@ -4,11 +4,8 @@ from __future__ import annotations
 
 import os
 import platform
-import shutil
-import site
 
 from pathlib import Path
-from typing import Optional
 
 
 def get_appdir(dirname: str, make_if_non_exsiting: bool = True) -> Path:
