@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from tmap_defectdetector.compatibility_checks import version_check
 from tmap_defectdetector.dataset_loading import DatasetDownloaderELPV
-from tmap_defectdetector.datasets import ImageDataSet
 from tmap_defectdetector.logger import log
 
 
@@ -17,8 +16,14 @@ def main():
     # Just an example for now demonstrating dataset downloading, this will not be in main eventually
     dataset_downloader = DatasetDownloaderELPV()
     dataset_downloader.download()
+    dataset = dataset_downloader.load()
 
-    example_unfinished_imagedataset_obj = ImageDataSet()
+    print(
+        f"vv Example of loaded labels: vv",
+        *[dframe.info() for dframe in dataset.label_data],
+        f"^^ Example of loaded label dataframe(s) ^^",
+        sep="\n",
+    )
     log.info("All done!")
 
 
