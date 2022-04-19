@@ -40,7 +40,7 @@ readme = {file = "README.md", content-type = "x-rst"}
 platforms = ["UNIX", "MacOS", "Windows"]
 
 [project.optional-dependencies]
-dev = ["pylint~=2.12.2", "black~=22.1.0"]
+dev = ["pylint~=2.12.2", "black~=22.1.0", "mypy~=0.942"]
 test = ["pytest~=7.1.1", "numpy~=1.22.3"]
 
 [tool.black]
