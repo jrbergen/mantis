@@ -1,4 +1,4 @@
-"""Contains helper functions for directory management/creation."""
+"""Contains helper functions for directory/path management/creation."""
 
 from __future__ import annotations
 
