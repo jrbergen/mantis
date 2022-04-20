@@ -20,10 +20,13 @@ import dataset
 def AssignXY(wdata):
     # Function to allocate for X and Y values
     # for linear regression
-    X = wdata.pH
+    wdata = wdata.rename(columns={'fixed acidity': 'fixed_acidity'})
+    X = wdata.density
     Y = wdata.quality
     print (X)
-    sn.scatterplot(X)     # Visualize Data
+    sn.scatterplot(X,Y)     # Plot and 
+    plt.show()              # Visualize Data
+
 
 def main():
     print("running")
