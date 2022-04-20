@@ -1,3 +1,7 @@
+"""
+Contains abstract baseclasses for downloading datasets,
+as well as implementations thereof for downloading specific datasets.
+"""
 from __future__ import annotations
 
 import os
@@ -6,14 +10,12 @@ from pathlib import Path
 from typing import Optional, Iterable
 
 
-from PIL import Image
 from git import Repo, Remote
 
 from tmap_defectdetector.config.paths import DIR_DATASETS
-from tmap_defectdetector.image_helpers import file_is_image
 from tmap_defectdetector.logger import log
 
-from tmap_defectdetector.datasets import ImageDataSet, AbstractDataSet
+from tmap_defectdetector.datasets import DataSet
 
 
 class AbstractDatasetDownloader(ABC):
@@ -29,7 +31,7 @@ class AbstractDatasetDownloader(ABC):
         pass
 
     @abstractmethod
-    def load(self) -> AbstractDataSet:
+    def load(self) -> DataSet:
         """This method should handle the loading of the dataset into a common format."""
         pass
 
@@ -83,7 +85,7 @@ class DatasetDownloaderGit(AbstractDatasetDownloader):
     def url(self) -> str:
         return self._url
 
-    def load(self) -> AbstractDataSet:
+    def load(self) -> DataSet:
         raise NotImplementedError(
             "Conversion of this dataset to 'datasets.DataSet' format not yet implemented."
         )
@@ -180,53 +182,6 @@ class DatasetDownloaderELPV(DatasetDownloaderGit):
         """
         super().__init__(dataset_name, relative_sample_dir_paths, relative_label_file_paths, url)
 
-    def load(self) -> ImageDataSet:
-        """
-        Loads downloaded dataset into common ImageDataSet format.
-
-        :returns: ImageDataSet
-        """
-        dataset = ImageDataSet()
-        dataset = self._load_images(dataset)
-        dataset = self._load_label_data(dataset)
-        return dataset
-
-    def _load_images(self, dataset: ImageDataSet) -> ImageDataSet:
-        """
-        Loads images into dataset for specified sample directories as
-        dedfined in 'relative_sample_dir_paths' attribute.
-
-        :param dataset: ImageDataset instance.
-        """
-        image_dirs = [Path(self.root_dataset_dir, p) for p in self.relative_sample_dir_paths]
-
-        for imgdir in image_dirs:
-            for file in imgdir.rglob("*.*"):
-                if file.is_file() and file_is_image(file):
-                    with Image.open(file) as imgobj:
-                        dataset += imgobj
-
-        log.info(
-            f"Loaded dataset {self.dataset_name!r} ({type(self).__name__}) with {len(dataset)} images."
-        )
-        return dataset
-
-    def _load_label_data(self, dataset: ImageDataSet) -> ImageDataSet:
-        """
-        Loads images into dataset for specified sample directories as
-        defined in 'relative_sample_dir_paths' attribute.
-
-        :param dataset: ImageDataset instance.
-        """
-        label_files = [Path(self.root_dataset_dir, lf) for lf in self.relative_label_file_paths]
-
-        for labelpath in label_files:
-            if labelpath.is_file():
-                dataset.add_label_data(labelpath)
-
-        log.info(
-            f"Loaded label data for dataset {self.dataset_name!r} "
-            f"({type(self).__name__} from {len(label_files)} label files."
-        )
-
-        return dataset
+        # The image loading logic which was here before is now part of the ImageDataSetELPV class.
+        # We may want to alter this class later (e.g. remove it entirely and find a better way to
+        # make its DataSetDownloader parent class suited to donwloading the ELPV dataset specifically).
