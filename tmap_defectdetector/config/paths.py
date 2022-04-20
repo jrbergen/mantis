@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from .path_helpers import get_appdir
+from tmap_defectdetector.config.path_helpers import get_appdir
 
 _PKG_NAME: str = "tmapdd"
 
