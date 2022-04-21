@@ -186,13 +186,13 @@ class DatasetDownloaderGit(AbstractDatasetDownloader):
 
     def get_data_files(
         self,
-        filechecker_functions: Callable[[Path], bool] = Path.is_file,
+        filechecker_function: Callable[[Path], bool] = Path.is_file,
     ) -> list[Path]:
         """
         Looks in sample director[y|ies] for this dataset, gathering all files which
         comply with the file checking function passed to the 'filechecker_function' parameter.
 
-        :param filechecker_functions: callable which takes a Path as argument and check whether the file the path
+        :param filechecker_function: callable which takes a Path as argument and check whether the file the path
             points to corresponds to an actual sample file we want to use for the training data.
         """
         log.info("Updating dataset's training sample paths...")
@@ -204,7 +204,7 @@ class DatasetDownloaderGit(AbstractDatasetDownloader):
                 desc=f"Finding {self.DEFAULT_DATASET_UNITS}...",
                 unit=self.DEFAULT_DATASET_UNITS,
             ):
-                if filechecker_functions(file):
+                if filechecker_function(file):
                     data_paths.append(file)
         return data_paths
 
