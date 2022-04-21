@@ -38,7 +38,12 @@ class AbstractDatasetDownloader(ABC):
 
 class DatasetDownloaderGit(AbstractDatasetDownloader):
 
+    # Default parent directory to download datasets to
     DEFAULT_DATASET_ROOTDIR: Path = DIR_DATASETS
+
+    # Description of the type of sample data used for e.g. progress bars,
+    # should not impact functionality
+    DEFAULT_DATASET_UNITS: str = "samples"
 
     def __init__(
         self,
@@ -186,12 +191,19 @@ class DatasetDownloaderGit(AbstractDatasetDownloader):
         """
         Looks in sample director[y|ies] for this dataset, gathering all files which
         comply with the file checking function passed to the 'filechecker_function' parameter.
+
+        :param filechecker_functions: callable which takes a Path as argument and check whether the file the path
+            points to corresponds to an actual sample file we want to use for the training data.
         """
         log.info("Updating dataset's training sample paths...")
         data_paths = []
-        # Currently this crudely finds all image files in any of the (sub)directories in the image_dirs variable.
         for sample_dir in self.data_sample_dirs:
-            for file in tqdm(sample_dir.rglob("*.*"), desc="Finding images...", unit="images"):
+            # nb: tqdm is for progress bar.
+            for file in tqdm(
+                sample_dir.rglob("*.*"),
+                desc=f"Finding {self.DEFAULT_DATASET_UNITS}...",
+                unit=self.DEFAULT_DATASET_UNITS,
+            ):
                 if filechecker_functions(file):
                     data_paths.append(file)
         return data_paths
@@ -203,7 +215,12 @@ class DatasetDownloaderELPV(DatasetDownloaderGit):
     # However, given that we probably don't have to use that many datasets and it would likely take to much
     # time to implement a generalizable way to do this right now, the choice was made to do it like this.
 
+    # Default repository name for this DatasetDownloader subclass
     DEFAULT_REPO_NAME: str = "dataset-elpv"
+
+    # Description of the type of sample data used for e.g. progress bars,
+    # should not impact functionality
+    DEFAULT_DATASET_UNITS: str = "image samples"
 
     def __init__(
         self,
