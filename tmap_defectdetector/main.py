@@ -3,10 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tqdm import tqdm
-
 from tmap_defectdetector.compatibility_checks import version_check
-from tmap_defectdetector.config.paths import DIR_DATASETS
 from tmap_defectdetector.dataset_downloaders import DatasetDownloaderELPV
 
 from tmap_defectdetector.datasets import ImageDataSetELPV
