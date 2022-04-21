@@ -27,7 +27,7 @@ LabelCollection: TypeAlias = Iterable[DataLabels]
 Translation: TypeAlias = tuple[float, float] | tuple[int, int]
 
 
-class DataSet:
+class AbstractDataSet(ABC):
 
     data: pd.DataFrame
     labels: SampleLabelsBase
@@ -54,13 +54,12 @@ class DataSet:
         )
 
 
-class ImageDataSet(DataSet, ABC):
+class ImageDataSet(AbstractDataSet):
     def __init__(self, data: pd.DataFrame, labels: SampleLabelsELPV):
         self.labels: SampleLabelsELPV = labels
         self.data: pd.DataFrame = data
 
-    @abstractmethod
-    def amplify_data(self):
+    def amplify_data(self, **kwargs):
         """
         Performs operations which effectively increase the dataset size
         as to reduce overfitting problems / allow for a more generalizable

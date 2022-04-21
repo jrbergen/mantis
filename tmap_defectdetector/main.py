@@ -21,27 +21,19 @@ def cli():
 def main():
     version_check()
 
-    # Download the ELPV dataset from its git repository
-    DatasetDownloaderELPV().download(Path(DIR_DATASETS, "dataset-elpv"))
-    # The dataset is downloaded to %LOCALAPPDATA%/.tmapdd/datasets/dataset-elpv/ (on Windows)
+    # Initialize the dataset downloader and download the ELPV dataset from its git repository.
+    downloader = DatasetDownloaderELPV()
+    downloader.download()  # The dataset is downloaded to %LOCALAPPDATA%/.tmapdd/datasets/dataset-elpv/ (on Windows)
 
-    # We first find the image paths and label file Path(s) before we construct the ImageDataSet.
-    # This should probably be made part of a method in the DatasetDownloader which gives the label/data paths.
-    label_paths = [Path(DIR_DATASETS, "dataset-elpv", "labels.csv")]
+    # We first find the image paths in the image dataset directories and accept the files
+    # which comply with our anonymous (lambda) function check.
+    sample_files = downloader.get_data_files(
+        filechecker_functions=lambda p: Path.is_file(p) and file_is_image(p)
+    )
+    label_files = downloader.label_paths
 
-    image_dirs = [Path(DIR_DATASETS, p) for p in [Path("dataset-elpv", "images")]]
-
-    log.info("Loading images...")
-    data_paths = []
-    # Currently this crudely finds all image files in any of the (sub)directories in the image_dirs variable.
-    for imgdir in image_dirs:
-        files = tuple(imgdir.rglob("*.*"))
-        for file in tqdm(files, desc="Finding images...", unit="images", total=len(files)):
-            if file.is_file() and file_is_image(file):
-                data_paths.append(file)
-
-    # Now we know where the label path(s) and the data (image file) paths are, so we can construct the ImageDataSet.
-    dataset = ImageDataSetELPV.from_paths(data_paths=data_paths, label_paths=label_paths)
+    # Now we know where the label path(s) and the data (image file) paths are, we can construct the ImageDataSet.
+    dataset = ImageDataSetELPV.from_paths(data_paths=sample_files, label_paths=label_files)
 
     # Here comes the preprocessing step (we could e.g. make a ImageDataSetPreProcessor class/function or perhaps
     # put preprocessing methods in the ImageDataSet class itself later.
