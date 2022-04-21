@@ -25,7 +25,7 @@ def main():
     # We first find the image paths in the image dataset directories and accept the files
     # which comply with our anonymous (lambda) function check.
     sample_files = downloader.get_data_files(
-        filechecker_functions=lambda p: Path.is_file(p) and file_is_image(p)
+        filechecker_function=lambda p: Path.is_file(p) and file_is_image(p)
     )
     label_files = downloader.label_paths
 
