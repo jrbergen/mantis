@@ -6,10 +6,11 @@ and defining Schemas (see ELPV dataset below for example).
 from __future__ import annotations
 
 import os
+from abc import abstractmethod
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import ClassVar, Iterator, Callable, Collection
+from typing import ClassVar, Iterator, Callable, Collection, Optional
 
 import numpy as np
 import pandas as pd
@@ -109,9 +110,10 @@ class ColSchemaFullELPV(ColSchemaFullImageData, ColSchemaLabelsELPV, ColSchemaSa
 
 
 class ImageDatasetConfig(DataSetConfig):
-    LABEL_SCHEMA: ClassVar[ColSchemaLabels] = ColSchemaLabelsELPV()
-    SAMPLE_SCHEMA: ClassVar[ColSchemaSamplesImageData] = ColSchemaSamplesELPV()
-    FULL_SCHEMA: ClassVar[ColSchemaFullImageData] = ColSchemaFullELPV()
+    LABEL_SCHEMA: ClassVar[ColSchemaLabels] = ColSchemaLabels()
+    SAMPLE_SCHEMA: ClassVar[ColSchemaSamplesImageData] = ColSchemaSamplesImageData()
+    FULL_SCHEMA: ClassVar[ColSchemaFullImageData] = ColSchemaFullImageData()
+
     _RASTER_IMG_EXTENSIONS: set[str] = {
         ".tif",
         ".tiff",
@@ -136,10 +138,93 @@ class ImageDatasetConfig(DataSetConfig):
     }
     """Valid/expected possible extensions for raster images."""
 
+    def __init__(
+        self,
+        sample_dirs: os.PathLike | Collection[os.PathLike],
+        label_path: os.PathLike,
+        sample_col_schema: ColSchemaDefectData = LABEL_SCHEMA,
+        label_col_schema: ColSchemaDefectData = SAMPLE_SCHEMA,
+        sample_type_desc: str = "solar panel sample image",
+    ):
+        """
+        Provides configuration to load an image dataset for training a defect detection model.
+
+        :param sample_dirs: One ore more path-like object(s) pointing to a directory with sample files.
+        :param label_path: A path-like object pointing to corresponding label file.
+        :param sample_col_schema: ColumnSpec (column specification) object declaring column names and types
+            for the samples in this dataset.
+        :param label_col_schema: ColumnSpec (column specification) object declaring column names and types
+            for the labels in this dataset.
+        :param sample_type_desc: (optional) description of this kind of sample (default = "sample").
+        """
+        super().__init__(
+            sample_dirs=sample_dirs,
+            sample_col_schema=sample_col_schema,
+            label_path=label_path,
+            label_col_schema=label_col_schema,
+            sample_type_desc=sample_type_desc,
+        )
+
     @classmethod
     def file_is_sample(cls, file: Path) -> bool:
         """Checks if potential sample file is an image assuming it has a (correct) extension."""
         return file.is_file() and file.suffix.lower() in ImageDatasetConfig._RASTER_IMG_EXTENSIONS
+
+    def get_sample_paths(
+        self,
+        filechecker_function: Optional[Callable[[Path], bool]] = None,
+        glob_pat: str = "*.*",
+        recursive: bool = True,
+    ) -> Iterator[Path]:
+
+        _filechecker_function: Callable[[Path], bool] = (
+            type(self).file_is_sample if filechecker_function is None else filechecker_function
+        )
+
+        for sample_dir in self.sample_dirs:
+            sample_dir = Path(sample_dir)
+            sample_path_iterator = (
+                sample_dir.rglob(glob_pat) if recursive else sample_dir.glob(glob_pat)
+            )
+
+            for potential_sample_file in sample_path_iterator:
+                if _filechecker_function(potential_sample_file):
+                    yield potential_sample_file
+
+    @abstractmethod
+    @cached_property
+    def full_dataset(self) -> DataFrame:
+        """
+        Merges sample and label DataFrames into one coherent whole.
+        _Must_ be implemented for extending classes.
+        """
+        raise NotImplementedError("Not implemented for baseclass")
+
+    @abstractmethod
+    @cached_property
+    def label_data(self) -> DataFrame:
+        """
+        Provides way to load labels for a specific dataset into DataFrame format.
+        This step is seperate from loading the samples as the datasets encountered
+        during this project commonly have labels and samples in different formats.
+        The loading result is cached in memory until an attribute of this configuration
+        is changed.
+        _Must_ be implemented for extending classes.
+        """
+        raise NotImplementedError("Not implemented for baseclass")
+
+    @abstractmethod
+    @cached_property
+    def sample_data(self) -> DataFrame:
+        """
+        Provides way to load samples for a specific dataset into DataFrame format.
+        This step is seperate from loading the label data as the datasets encountered
+        during this project commonly have labels and samples in different formats.
+        The loading result is cached in memory until an attribute of this configuration
+        is changed.
+        _Must_ be implemented for extending classes.
+        """
+        raise NotImplementedError("Not implemented for baseclass")
 
 
 class DataSetConfigELPV(ImageDatasetConfig):
@@ -278,22 +363,3 @@ class DataSetConfigELPV(ImageDatasetConfig):
             df_samples[entry.name] = df_samples[entry.name].astype(entry.type)
 
         return df_samples
-
-    def get_sample_paths(
-        self,
-        filechecker_function: Callable[[Path], bool] = lambda p: DataSetConfigELPV.file_is_sample(
-            p
-        ),
-        glob_pat: str = "*.*",
-        recursive: bool = True,
-    ) -> Iterator[Path]:
-
-        for sample_dir in self.sample_dirs:
-            sample_dir = Path(sample_dir)
-            sample_path_iterator = (
-                sample_dir.rglob(glob_pat) if recursive else sample_dir.glob(glob_pat)
-            )
-
-            for potential_sample_file in sample_path_iterator:
-                if filechecker_function(potential_sample_file):
-                    yield potential_sample_file
