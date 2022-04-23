@@ -1,83 +1,154 @@
+"""
+Add your dataset configurations here by extending DataSetConfig
+and defining Schemas (see ELPV dataset below for example).
+"""
+
 from __future__ import annotations
 
 import os
-from functools import lru_cache, cached_property
+from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
-from typing import Iterable, ClassVar, Type
+from typing import ClassVar, Iterator, Callable, Collection
 
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
+from tqdm import tqdm
+import cv2 as cv
 
 from tmap_defectdetector.dataset.dataset_config_base import (
     DataSetConfig,
-    ColSchemaType,
-    merge_colschemas,
-    ColType,
-    ColSchema,
     ColSchemaDefectData,
+    SchemaEntry,
+    ColName,
 )
+
 from tmap_defectdetector.logger import log
+from tmap_defectdetector.pathconfig.paths import DIR_DATASETS
 
 
-class _ImageDataset(ColSchema):
+@dataclass(repr=False)
+class ImageDataset(ColSchemaDefectData):
     """
     Used to specify the schema (column names and data types) for a
     defect dataset/labelset/sampleset pertaining image samples specifically.
     """
 
-    MIRROR_AXIS: ColType = np.uint8, "Number representing mirrored state w.r.t original image."
-    ROT_DEG: ColType = np.int16, "Rotation of image in degrees w.r.t. original image."
-    TRANSL_X: ColType = np.int16, "Translation of Y-pixel positions w.r.t. original image."
-    TRANSL_Y: ColType = np.int16, "Translation of X-pixel positions w.r.t. original image."
+    MIRROR_AXIS: SchemaEntry = SchemaEntry(
+        "MIRROR_AXIS",
+        np.uint8,
+        docstring="Number representing mirrored state w.r.t original image.",
+    )
+    ROT_DEG: SchemaEntry = SchemaEntry(
+        "ROT_DEG", np.int16, docstring="Rotation of image in degrees w.r.t. original image."
+    )
+    TRANSL_X: SchemaEntry = SchemaEntry(
+        "TRANSL_X", np.int16, docstring="Translation of Y-pixel positions w.r.t. original image."
+    )
+    TRANSL_Y: SchemaEntry = SchemaEntry(
+        "TRANSL_Y", np.int16, docstring="Translation of X-pixel positions w.r.t. original image."
+    )
 
 
-ImageDataSet = merge_colschemas(ColSchemaDefectData, _ImageDataset)
-
-
+@dataclass(repr=False)
 class ColSchemaLabelsELPV(ColSchemaDefectData):
     """Specifies schema for ELPV label data."""
 
-    LABEL_FILENAME: ColType = str, "Name of the file which stores a row's data labels, as string."
-    LABEL_PATH: ColType = str, "Full path of the file which stores a row's data label, as string."
-    TYPE: ColType = (
-        "category",
-        "Represents the type of photovoltaic panel (monocrystalline/polycrystalline).",
+    LABEL_FILENAME: SchemaEntry = SchemaEntry(
+        "LABEL_FILENAME",
+        str,
+        docstring="Name of the file which stores a row's data labels, as string.",
     )
-    PROBABILITY: ColType = np.float64, "Expresses the degree of defectiveness."
+    LABEL_PATH: SchemaEntry = SchemaEntry(
+        "LABEL_PATH",
+        str,
+        docstring="Full path of the file which stores a row's data label, as string.",
+    )
+    TYPE: SchemaEntry = SchemaEntry(
+        "TYPE",
+        "category",
+        docstring="Represents the type of photovoltaic panel (monocrystalline/polycrystalline).",
+    )
+    PROBABILITY: SchemaEntry = SchemaEntry(
+        "PROBABILITY", np.float64, docstring="Expresses the degree of defectiveness."
+    )
 
 
-class ColSchemaSamplesELPV(ImageDataSet):
+@dataclass(repr=False)
+class ColSchemaSamplesELPV(ImageDataset):
     """Specifies schema for ELPV sample data."""
 
-    SAMPLE_PATH: ColType = str, "Full path of the file which stores the data labels, as string."
-    SAMPLE: ColType = (
-        np.ndarray,
-        "A numpy array representing the image of the actual photovoltaic panel.",
+    SAMPLE_PATH: SchemaEntry = SchemaEntry(
+        "SAMPLE_PATH",
+        str,
+        docstring="Full path of the file which stores the data labels, as string.",
+    )
+    SAMPLE: SchemaEntry = SchemaEntry(
+        "SAMPLE",
+        object,  # np.ndarray (but cvann
+        docstring="A numpy array representing the image of the actual photovoltaic panel.",
     )
 
 
-ColSpecFullELPV = merge_colschemas([ImageDataSet, ColSchemaLabelsELPV, ColSchemaSamplesELPV])
+@dataclass(repr=False)
+class ColSchemaFullELPV(ColSchemaLabelsELPV, ColSchemaSamplesELPV):
+    """Specifies schema for ELPV label _and_ sample data."""
+
+    pass
 
 
-class DataSetConfigELPV(DataSetConfig):
+class ImageDatasetConfig(DataSetConfig):
 
-    LABEL_SCHEMA: ClassVar[ColSchemaLabelsELPV] = ColSchemaLabelsELPV
-    SAMPLE_SCHEMA = ClassVar[ColSchemaSamplesELPV] = ColSchemaSamplesELPV
-    FULL_SCHEMA = ClassVar[ColSchemaSamplesELPV] = ColSchemaSamplesELPV
+    _RASTER_IMG_EXTENSIONS: set[str] = {
+        ".tif",
+        ".tiff",
+        ".png",
+        ".bmp",
+        ".raw",
+        ".jfif",
+        ".jif",
+        ".jfi",
+        ".jpe",
+        ".jpeg",
+        ".jpg",
+        ".dib",
+        ".gif",
+        ".webp",
+        ".arw",
+        ".cr2",
+        ".nrw",
+        ".k25",
+        ".heif",
+        ".heic",
+    }
+    """Valid/expected possible extensions for raster images."""
+
+    @classmethod
+    def file_is_sample(cls, file: Path) -> bool:
+        """Checks if potential sample file is an image assuming it has a (correct) extension."""
+        return file.is_file() and file.suffix.lower() in ImageDatasetConfig._RASTER_IMG_EXTENSIONS
+
+
+class DataSetConfigELPV(ImageDatasetConfig):
+
+    LABEL_SCHEMA: ClassVar[ColSchemaLabelsELPV] = ColSchemaLabelsELPV()
+    SAMPLE_SCHEMA: ClassVar[ColSchemaSamplesELPV] = ColSchemaSamplesELPV()
+    FULL_SCHEMA: ClassVar[ColSchemaFullELPV] = ColSchemaFullELPV()
 
     def __init__(
         self,
-        sample_path_s: os.PathLike | Iterable[os.PathLike],
-        label_path: os.PathLike,
-        sample_col_schema: ColSchema = ColSchemaSamplesELPV,
-        label_col_schema: ColSchema = ColSchemaLabelsELPV,
+        sample_dirs: os.PathLike
+        | Collection[os.PathLike] = (DIR_DATASETS / "dataset-elpv" / "images",),
+        label_path: os.PathLike = Path(DIR_DATASETS / "dataset-elpv" / "labels.csv"),
+        sample_col_schema: ColSchemaDefectData = LABEL_SCHEMA,
+        label_col_schema: ColSchemaDefectData = SAMPLE_SCHEMA,
         sample_type_desc: str = "solar panel sample image",
     ):
         """
         Provides configuration to load the ELPV dataset for training a defect detection model.
 
-        :param sample_path_s: One ore more path-like object(s) pointing to a sample file.
+        :param sample_dirs: One ore more path-like object(s) pointing to a directory with sample files.
         :param label_path: A path-like object pointing to corresponding label file.
         :param sample_col_schema: ColumnSpec (column specification) object declaring column names and types
             for the samples in this dataset.
@@ -86,7 +157,7 @@ class DataSetConfigELPV(DataSetConfig):
         :param sample_type_desc: (optional) description of this kind of sample (default = "sample").
         """
         super().__init__(
-            sample_path_s=sample_path_s,
+            sample_dirs=sample_dirs,
             sample_col_schema=sample_col_schema,
             label_path=label_path,
             label_col_schema=label_col_schema,
@@ -96,19 +167,35 @@ class DataSetConfigELPV(DataSetConfig):
     @cached_property
     def full_dataset(self) -> DataFrame:
         """Merges sample and label DataFrames into one coherent whole."""
-        # return self.
-        df_labels = self.label_data
-        df_samples = self.sample_data
+
+        # Check that column name and type used for label & sample ID are equal.
+        if self.LABEL_SCHEMA.LABEL_SAMPLE_ID != self.SAMPLE_SCHEMA.LABEL_SAMPLE_ID:
+            raise ValueError(
+                f"Cannot merge label data with sample data: label schema entry "
+                f"{self.LABEL_SCHEMA.LABEL_SAMPLE_ID.name!r} is not congruent with "
+                f"{self.SAMPLE_SCHEMA.LABEL_SAMPLE_ID.name!r}."
+            )
+        log.info("Merging label and sample datasets...")
+        return self.label_data.merge(
+            self.sample_data, how="outer", on=self.LABEL_SCHEMA.LABEL_SAMPLE_ID.name, sort=True
+        )
 
     @cached_property
     def label_data(self) -> DataFrame:
-        """Provides way to load labels for a specific dataset into DataFrame format."""
+        """
+        Provides way to load labels for a specific dataset into DataFrame format.
+        This step is seperate from loading the samples as the datasets encountered
+        during this project commonly have labels and samples in different formats.
+        The loading result is cached in memory until an attribute of this configuration
+        is changed.
+        """
 
         lpath = self.label_path
         if not lpath.exists():
             raise FileNotFoundError(f"Couldn't find CSV file to load labels from: {str(lpath)!r}.")
 
         # np.genfromtxt reads the dataset from the ELPV dataset's labels.csv according to its format.
+        log.info("Reading label file data for ELPV dataset...")
         label_df = np.genfromtxt(
             lpath,
             dtype=["|U19", "<f8", "|U4"],
@@ -121,12 +208,13 @@ class DataSetConfigELPV(DataSetConfig):
         )
         label_df = pd.DataFrame(label_df)
 
+        log.info("Wrapping up label DataFrame construction...")
         # Make column with path to label file
         label_df[DataSetConfigELPV.LABEL_SCHEMA.LABEL_FILENAME.name] = [lpath] * len(label_df)
 
         # Add column with ids identifying which labels belong to which samples (in this case the path is used)
         label_df[DataSetConfigELPV.LABEL_SCHEMA.LABEL_SAMPLE_ID.name] = [
-            str(Path(p).name) for p in label_df[type(self).LABEL_SCHEMA.LABEL_FILENAME.name]
+            str(Path(p).name) for p in label_df[type(self).LABEL_SCHEMA.LABEL_PATH.name]
         ]
 
         # Update types
@@ -138,62 +226,62 @@ class DataSetConfigELPV(DataSetConfig):
 
     @cached_property
     def sample_data(self) -> DataFrame:
-        """Provides way to load samples for a specific dataset into DataFrame format."""
-        return None
-        # # Make sure data paths is a list
-        # if isinstance(sample_path_s, Path):
-        #     sample_path_s = [sample_path_s]
-        #
-        # # Concatenate label sets
-        # labels = functools.reduce(
-        #     operator.add, [SampleLabelsELPV.from_csv(lp) for lp in label_paths]
-        # )
-        #
-        # # Load each image with Pillow and put it in a list (tqdm adds progress bar)
-        # sample_objs: dict[str, list] = {col: [] for col in cls.SAMPLE_COLUMNS}
-        #
-        # load_img_func = str if load_images_as_path_strings else cv.imread
-        # for sample_id, file in enumerate(
-        #     tqdm(
-        #         sample_paths,
-        #         desc="Loading samples (images)...",
-        #         total=len(sample_paths),
-        #         unit=f" {cls.DEFAULT_DATASET_UNITS}",
-        #     )
-        # ):
-        #     sample_objs[cls.SAMPLE_COLUMNS.SAMPLE].append(load_img_func(str(file.resolve())))
-        #     sample_objs[cls.SAMPLE_COLUMNS.PATH].append(str(file.resolve()))
-        #     sample_objs[cls.SAMPLE_COLUMNS.FILENAME].append(str(file.name))
-        #
-        # sample_objs[cls.SAMPLE_COLUMNS.LABEL_SAMPLE_ID] = sample_objs[cls.SAMPLE_COLUMNS.FILENAME]
-        #
-        # # Specify column names and corresponding datatypes for image manipulation relevant after dataset amplification.
-        # amplification_info_colname_coltypes = {
-        #     cls.SAMPLE_COLUMNS.MIRROR_AXIS: np.uint8,
-        #     cls.SAMPLE_COLUMNS.ROT_DEG: np.uint16,
-        #     cls.SAMPLE_COLUMNS.TRANSLATION_X: np.int32,
-        #     cls.SAMPLE_COLUMNS.TRANSLATION_Y: np.int32,
-        # }
-        # default_property_vals = [0] * len(sample_objs[cls.SAMPLE_COLUMNS.SAMPLE])
-        # for column_name, _ in amplification_info_colname_coltypes.items():
-        #     sample_objs[column_name] = default_property_vals
-        #
-        # # Create dataframe with images
-        # samples_dframe = pd.DataFrame.from_dict(sample_objs)
-        #
-        # # Initialize data amplification metadata (specify types)
-        # for column_name, tgt_dtype in amplification_info_colname_coltypes.items():
-        #     samples_dframe[column_name] = samples_dframe[column_name].astype(tgt_dtype)
-        #
-        # # Instantiate ImageDataSet
-        # return cls(samples=samples_dframe, labels=labels)
+        """
+        Provides way to load samples for a specific dataset into DataFrame format.
+        This step is seperate from loading the label data as the datasets encountered
+        during this project commonly have labels and samples in different formats.
+        The loading result is cached in memory until an attribute of this configuration
+        is changed.
+        """
 
+        sample_dict: dict[ColName, list] = {colname: [] for colname in self.SAMPLE_SCHEMA.to_dict()}
+        log.info("Started reading sample files.")
+        # Build dictionary with sample files and initial entries for the relevant columns.
+        for sample_id, file in enumerate(
+            tqdm(
+                self.get_sample_paths(),
+                desc="Loading samples (images)...",
+                total=len(self.sample_dirs),
+                unit=f" {self.sample_type_desc}",
+            )
+        ):
+            sample_dict[self.SAMPLE_SCHEMA.SAMPLE.name].append(cv.imread(str(file.resolve())))
+            sample_dict[self.SAMPLE_SCHEMA.SAMPLE_PATH.name].append(str(file.resolve()))
+            sample_dict[self.SAMPLE_SCHEMA.LABEL_SAMPLE_ID.name].append(file.name)
 
-if __name__ == "__main__":
-    a = DataSetConfigELPV(
-        sample_path_s=[
-            Path(Path.home(), ".tmapdd", "datasets", "dataset-elpv", "images", "cell0001.png")
-        ],
-        label_path=Path(Path.home(), ".tmapdd", "datasets", "dataset-elpv", "labels.csv"),
-    )
-    print(f"Temporary breakpoint in {__name__}")
+            # Initialize data amplification metadata columns
+            for colname in (
+                self.SAMPLE_SCHEMA.MIRROR_AXIS.name,
+                self.SAMPLE_SCHEMA.ROT_DEG.name,
+                self.SAMPLE_SCHEMA.TRANSL_X.name,
+                self.SAMPLE_SCHEMA.TRANSL_Y.name,
+            ):
+                sample_dict[colname].append(0)
+
+        log.info("Started DataFrame construction from founr sample files.")
+        df_samples: pd.DataFrame = pd.DataFrame.from_dict(sample_dict)
+
+        # Update types
+        for entry in self.SAMPLE_SCHEMA.schema_entries:
+            df_samples[entry.name] = df_samples[entry.name].astype(entry.type)
+
+        return df_samples
+
+    def get_sample_paths(
+        self,
+        filechecker_function: Callable[[Path], bool] = lambda p: DataSetConfigELPV.file_is_sample(
+            p
+        ),
+        glob_pat: str = "*.*",
+        recursive: bool = True,
+    ) -> Iterator[Path]:
+
+        for sample_dir in self.sample_dirs:
+            sample_dir = Path(sample_dir)
+            sample_path_iterator = (
+                sample_dir.rglob(glob_pat) if recursive else sample_dir.glob(glob_pat)
+            )
+
+            for potential_sample_file in sample_path_iterator:
+                if filechecker_function(potential_sample_file):
+                    yield potential_sample_file

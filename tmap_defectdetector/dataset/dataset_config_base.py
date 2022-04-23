@@ -7,153 +7,289 @@ This file also contains baseclasses for dataset configuration.
 from __future__ import annotations
 
 import inspect
-import itertools
 import os
-import sys
+import string
+import warnings
 from abc import abstractmethod, ABC
+from dataclasses import dataclass
 from functools import cached_property
 
 
 from pathlib import Path
-from types import DynamicClassAttribute
-from typing import Iterable, Optional, TypeAlias, ClassVar, Type, Collection, TypeVar, TYPE_CHECKING
+from typing import (
+    Iterable,
+    TypeAlias,
+    ClassVar,
+    TypeVar,
+    Iterator,
+    cast,
+    Mapping,
+    Collection,
+)
 
-from aenum import extend_enum
-
-if TYPE_CHECKING:
-    from enum import (
-        unique,
-        Enum,
-    )  # MyPy doesn't support advancedenum typechecks, so for typechecking use std version.
-else:
-    from aenum import unique, Enum
 import numpy as np
-import pandas as pd
 from pandas import DataFrame
+import pandas as pd
 from pandas.core.dtypes.base import ExtensionDtype
 
 
 ColType: TypeAlias = ExtensionDtype | np.dtype | type | str
 
 
-class ColEnum(Enum):
-    """Enum storing column name(s) + data type(s) for a (DataFrame) schema."""
-
-    # Allows docstrings for Enum members using the `aenum` library (same author as stdlib's Enum module btw).
-    _init_ = "value __doc__"
-
-    @DynamicClassAttribute
-    def type(self):
-        """
-        Alias for an enum's 'value' attribute which makes
-        sense in the context of column name -> type mappings.
-        """
-        if self.value is str:
-            return pd.StringDtype()
-        return self.value
-
-
-@unique
-class ColSchema(ColEnum):
+class ColName(str):
     """
-    Used to specify the schema (column names and data types) for a generic data
-    storage object which has a schema (e.g. a pandas DataFrame).
+    Subclass of str used for column names,
+    restricted to contain only ascii letters + digits + underscore.
     """
 
+    _ALLOWED_CHARS: str = string.ascii_letters + string.digits + "_"
 
-ColSchemaType: TypeAlias = ColSchema | Type[ColSchema]
+    def __new__(cls, s: str) -> ColName:
 
-
-ColSchemaDefectData = extend_enum(
-    enumeration=ColSchema,
-    name="ColSchemaDefectData",
-    _init_="value __doc__",
-    __doc__="Used to the schema (column names and data types) for a defect dataset/labelset/sampleset which has a schema (e.g. a pandas DataFrame)",
-)
-# value=str,
-# __doc__=,
-# )
-# )
-
-#
-# )
-
-
-print(f"Temporary breakpoint in {__name__}")
-#
-# LABEL_SAMPLE_ID: ColType = str
-# """
-# Column with equal entries for sample and label data so
-# sample and label data can be merged in the right order.
-# """
-#
-
-
-def merge_colschemas(*colschemas: Collection[ColSchemaType]) -> ColSchemaType:
-    """
-    Merges multiple ColSchema schemas into one.
-
-    :raises TypeError:
-        - If ColSchemas contain overlapping names with different values/types assigned.
-        - If an objects is passed in the 'colspecs' argument which is not a subclass of ColEnum.
-        - If an empty collection is passed to the 'colspecs' argument.
-    """
-    # Make our Collection instance an iterable and a list if it isn't one already
-    if not isinstance(colschemas, Iterable) or not isinstance(colschemas, list):
-        colschemas = list(colschemas)
-
-    # Check that we won't reach the recursion limit
-    if len(colschemas) > (reclim := sys.getrecursionlimit()):
-        raise ValueError(
-            f"Number of column schemas may not exceed the recursion limit (={reclim})."
-        )
-
-    # Check that the next schema we're trying to merge is of the proper type.
-    for colspec in colschemas:
-        if not issubclass(colspec, ColEnum):  # type: ignore
-            raise TypeError(
-                f"Can only combine {ColEnum.__name__} objects; got a {type(colspec)!r} type."
+        if any(substr not in cls._ALLOWED_CHARS for substr in s):
+            raise ValueError(
+                f"Column name may only consist of ASCII letters, digits, and underscores, but got {s!r}."
             )
+        return str.__new__(cls, s)
 
-    # Raise an error if the supplied Collection of schemas is empty.
-    if not colschemas:
-        raise TypeError(f"Tried to merge empty {ColSchema.__name__} collection...")
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({str(self)!r})"
 
-    # Return the schema unaltered if only a single one was passed.
-    if len(colschemas) == 1:
-        return colschemas[0]
 
-    # Get the first to schema's to merge them, and pack the remaining ones in a tuple called 'remaining'
-    # for the next recursion.
-    colschema_a, colschema_a, *remaining = colschemas
+class SchemaEntry:
 
-    # Check that we don't have duplicate keys
-    for member in colschema_a:  # type: ignore
-        if member.name in colschema_a.__members__ and member.type != (  # type: ignore
-            memb_type := getattr(colschema_a, member.name).type  # type: ignore
-        ):
-            raise TypeError(
-                f"Cannot add {ColSchema.__name__} objects with overlapping keys but different type values "
-                f"to prevent accidental overwrites:\n Name at issue: {member.name!r} "
-                f"with different types {member.type!r} and {memb_type!r}"
+    __slots__ = ("_name", "_type", "docstring")
+
+    def __init__(self, name: ColName | str, type_: ColType, docstring: str = ""):
+        """
+        Dataclass storing a single column name + data type combination (i.e. a single schema entry).
+
+        :param name: ColName or string instance representing column name.
+        :param type_: column type for this schema entry (ExtensionDtype | np.dtype | type | str)
+        :param docstring: (optional) doctsring describing this schema entry and/or its purpose.
+        """
+        self._name, self._type = "", ""
+        self.name: ColName = name if type(name) is ColName else ColName(str(name))
+        self.type: ColType = type_
+        self.docstring: str = docstring
+
+    @property
+    def name(self) -> ColName:
+        return self._name
+
+    @name.setter
+    def name(self, name: ColName) -> None:
+        if not isinstance(name, (str, ColName)):
+            raise TypeError(f"Name must be of type str or {ColName.__name__}.")
+        elif not type(name) is ColName:
+            self._name = ColName(name)
+        else:
+            self._name = name
+
+    @property
+    def type(self) -> ColType:
+        return self._type
+
+    @type.setter
+    def type(self, type_: ColType):
+        if type_ is np.ndarray:
+            warnings.warn(
+                "\nTried to use numpy.ndarray as an explicit data type for a schema entry. \n"
+                f"Reverting to {object.__name__!r} instead for compatibility with pandas DataFrames.",
+                UserWarning,
             )
+            type_ = object
+        if not isinstance(type_, (ExtensionDtype, np.dtype, type, str)):
+            raise TypeError(
+                f"Type attribute must be of type: ExtensionDtype | np.dtype | type | str."
+            )
+        self._type = type_
 
-    # Merge the first two schema's into a new schema
-    new_colschema = ColSchema(  # type: ignore
-        ColSchema.__name__,
-        {at.name: at.type for at in set(itertools.chain(colschema_a, colschema_a))},  # type: ignore
-        module=__name__,
+    @property
+    def __doc__(self) -> str:
+        return self.docstring if self.docstring else type(self).__doc__
+
+    def __eq__(self, other: SchemaEntry | object) -> bool:
+        if isinstance(other, SchemaEntry):
+            return self.name == other.name and self.type == other.type
+        return NotImplemented
+
+    def __repr__(self) -> str:
+        if hasattr(self._type, "__name__"):
+            typedesc = self._type.__name__
+        elif isinstance(self._type, str):
+            typedesc = f"{self._type!r}"
+        else:
+            typedesc = self._type.__repr__()
+        return f"{type(self).__name__}(name={self._name!r}, type={typedesc}, docstring={repr(self.docstring)})"
+
+
+@dataclass
+class ColSchema:
+    def __init__(self, colentries: Mapping[str, SchemaEntry]):
+        """
+        Used to specify the schema (column names and data types) for a generic data
+        storage object which has a schema (e.g. a pandas DataFrame).
+
+        :param colentries: mapping/dictionary of attribute names as keys
+            with associated SchemaEntry objects as values.
+        """
+        self.add_entries(**colentries)
+
+    def add_entries(self, **colentries) -> None:
+        """
+        Adds SchemaEntry entries to this schema
+        (duplicate column names or existing attribute names are not allowed).
+
+        :param **colentries: keyword arguments with SchemaEntry objects as values
+        """
+        encountered_attrnames = set()
+        encountered_colnames = set()
+        for attrname, entry in colentries.items():
+            if isinstance(entry, SchemaEntry):
+                if attrname in encountered_attrnames:
+                    raise ValueError(
+                        f"Tried to set ColSchema with duplicate attribute name: {attrname!r}"
+                    )
+                if entry.name in encountered_colnames:
+                    raise ValueError(
+                        f"Tried to set ColSchema with duplicate column name: {entry.name!r}"
+                    )
+                setattr(self, attrname, entry)
+                encountered_colnames.add(entry.name)
+                encountered_attrnames.add(attrname)
+            else:
+                warnings.warn(
+                    f"Tried to add column entry of other type than {SchemaEntry.__name__}: ignored.",
+                    UserWarning,
+                )
+
+    @property
+    def schema_entries(self) -> Iterator[SchemaEntry]:
+        """Yields all SchemaEntry object contained by this ColSchema instance."""
+        yield from self
+
+    @property
+    def columns(self) -> Iterator[ColName]:
+        """Yields column names for this schema."""
+        for colentry in self:
+            yield colentry.name
+
+    @property
+    def types(self) -> Iterator[ColType]:
+        """Yields column types for this schema."""
+        for colentry in self:
+            yield colentry.type
+
+    def values(self) -> Iterator[ColType]:
+        """
+        Yields column types for this schema.
+        Alias for 'types' property (but as function instead of property to be
+        consistent with common use of 'values()')
+        """
+        yield from self.types
+
+    def items(self) -> Iterator[tuple[ColName, ColType]]:
+        """Yields 2-tuples of all contained column names and types."""
+        yield from zip(self.columns, self.types)
+
+    def to_dict(self) -> dict[ColName, ColType]:
+        """Returns dictionary of column names and corresponding column types."""
+        return {entry.name: entry.type for entry in self.schema_entries}
+
+    def to_new_dframe(self) -> DataFrame:
+        """
+        Creates an empty DataFrame with the column names and types
+        as specified by this ColSchema instance.
+        """
+        return pd.DataFrame({col.name: pd.Series(dtype=col.type) for col in self.schema_entries})
+
+    def __getitem__(self, colname: ColName | str) -> SchemaEntry:
+        """
+        Tries to return a SchemaEntry with the provided column name.
+
+        :param colname: ColName instance
+        :raise KeyError: if no SchemaEntry exists with column name $colname in this instance.
+
+        """
+        for colentry in self:
+            if colentry.name == colname:
+                return colentry
+        raise KeyError(f"No {SchemaEntry.__name__} found with column name {colname!r}.")
+
+    def __iter__(self) -> Iterator[SchemaEntry]:
+        """Yields SchemaEntry instances defined in this ColSchema instance."""
+        for attrname in dir(self):
+            col_entry: SchemaEntry
+            if not attrname.startswith("_") and isinstance(
+                (col_entry := getattr(self, attrname)), SchemaEntry
+            ):
+                yield col_entry
+
+    def __len__(self) -> int:
+        """Returns number of SchemaEntry instances defined by this ColSchema instance."""
+        return len(list(self.schema_entries))
+
+    def __hash__(self) -> int:
+        return hash(f"{key}={str(value)}_{hash(value)}" for key, value in self.items())
+
+    def __eq__(self, other: ColSchema | object) -> bool:
+        if not isinstance(other, ColSchema):
+            return NotImplemented
+        return all(other_entry in self.schema_entries for other_entry in other.schema_entries)
+
+    def __or__(self, other: ColSchema) -> ColSchema:
+        """
+        Creates union of two ColSchema instances (union is equivalent to addition for this class).
+
+        :raises ValueError: if non-identical SchemaEntry members of the schemas have identical column names.
+        :raises ValueError: if non-identical SchemaEntry members of the schemas have identical attribute names.
+        """
+        return self.__add__(other)
+
+    def __add__(self, other: ColSchema) -> ColSchema:
+        """
+        Adds two ColSchema instances (addition is equivalent to union for this class).
+
+        :raises ValueError: if non-identical SchemaEntry members of the schemas have identical column names.
+        :raises ValueError: if non-identical SchemaEntry members of the schemas have identical attribute names.
+        """
+        if not isinstance(other, ColSchema):
+            return NotImplemented
+        schema_dict_self = {k: v for k, v in vars(self).items() if isinstance(v, SchemaEntry)}
+        schema_dict_other = {k: v for k, v in vars(other).items() if isinstance(v, SchemaEntry)}
+        for attr_self, entry_self in schema_dict_self.items():
+            for attr_other, entry_other in schema_dict_other.items():
+                if (
+                    attr_self == attr_other or entry_self.name == entry_other.name
+                ) and entry_self.type != entry_other.type:
+                    raise ValueError(
+                        f"Cannot combine/merge/add schemas containing duplicate keys/attribute names but "
+                        f"different values, to prevent accidental overwrites."
+                    )
+        schema_dict_self.update(**schema_dict_other)
+        return ColSchema(**schema_dict_self)  # type: ignore
+
+    def __repr__(self) -> str:
+        return f"{ColSchema.__name__}({', '.join(f'{k}={v}' for k, v in vars(self).items() if isinstance(v, SchemaEntry))})"
+
+
+@dataclass(repr=False)
+class ColSchemaDefectData(ColSchema):
+    """
+    Used to specify the schema (column names and data types) for a
+    defect detection dataset (e.g. a pandas DataFrame).
+    """
+
+    LABEL_SAMPLE_ID: SchemaEntry = SchemaEntry(
+        name="LABEL_SAMPLE_ID",
+        type_=str,
+        docstring=(
+            "Column with equal entries for sample and label data, "
+            "such that sample and label data can be merged in "
+            "the right order."
+        ),
     )
-
-    if remaining:  # If unmerged schemas remain, merge them with the newly created one.
-        return merge_colschemas(*[new_colschema, *remaining])
-    else:  # Otherwise return the merged schemas
-        return new_colschema
-
-
-def new_df_from_colspec(colspec: ColSchemaType) -> DataFrame:
-    """Creates an empty DataFrame with the column names and types as specified by for this ColumnSpec instance."""
-    return pd.DataFrame({col.name: pd.Series(dtype=col.type) for col in colspec})  # type: ignore
 
 
 # Make sure _ColSchemaDefectData subclasses are recognized by static type checker as valid by binding a typevar to it.
@@ -167,7 +303,7 @@ class DataSetConfig(ABC):
 
     def __init__(
         self,
-        sample_path_s: os.PathLike | Iterable[os.PathLike],
+        sample_dirs: os.PathLike | Collection[os.PathLike],
         sample_col_schema: ColSchemaDefectDataType,
         label_path: os.PathLike,
         label_col_schema: ColSchemaDefectDataType,
@@ -176,8 +312,8 @@ class DataSetConfig(ABC):
         """
         Provides ways to load a training dataset's samples and labels into a DataFrame.
 
-        :param sample_path_s: One ore more path-like object(s)
-            pointing to a sample file.
+        :param sample_dirs: :param sample_dirs: One ore more path-like object(s)
+            pointing to a directory with sample files.
         :param sample_col_schema: ColSchemaDefectData object representing
             column schema (column names + dtypes) for the DataFrame to
             be created which will contain the samples.
@@ -189,20 +325,36 @@ class DataSetConfig(ABC):
         :param sample_type_desc: (optional) description for this kind
             of sample (default = "sample").
         """
-        self.sample_path_s = (
-            sample_path_s if isinstance(sample_path_s, Iterable) else [sample_path_s]
+        self.sample_dirs: list[Path] = (
+            list(Path(d) for d in sample_dirs)
+            if isinstance(sample_dirs, Iterable)
+            else [Path(sample_dirs)]
         )
         self.label_path = Path(label_path)
 
-        self.sample_col_schema: ColSchemaType = sample_col_schema
-        self.label_col_schema: ColSchemaType = label_col_schema
+        self.sample_col_schema: ColSchema = sample_col_schema
+        self.label_col_schema: ColSchema = label_col_schema
 
         self.sample_type_desc: str = sample_type_desc
+
+    @classmethod
+    def file_is_sample(cls, file: Path) -> bool:
+        """
+        Function used to check if a file can be identified as / considered a sample for this dataset.
+        Defaults to just checking whether a Path indeed points to a file. Override in extending classes
+        to perform more comprehensive checks.
+
+        :param file: Path to (potential) sample file.
+        """
+        return file.is_file()
 
     @cached_property
     @abstractmethod
     def full_dataset(self) -> DataFrame:
-        """Merges sample and label DataFrames into one coherent whole."""
+        """
+        Merges sample and label DataFrames into one coherent whole.
+        _Must_ be implemented by subclasses.
+        """
         ...
 
     @cached_property
@@ -211,6 +363,7 @@ class DataSetConfig(ABC):
         """
         Provides way to load labels for a specific dataset into
         a DataFrame using the label path passed to the constructor.
+        _Must_ be implemented by subclasses.
         """
         ...
 
@@ -220,16 +373,17 @@ class DataSetConfig(ABC):
         """
         Provides way to load samples for a specific dataset into
         a DataFrame using the label path passed to the constructor.
+        _Must_ be implemented by subclasses.
         """
         ...
 
     @property
-    def column_schema(self) -> ColSchema | Type[ColSchema]:
+    def column_schema(self) -> ColSchema:
         """
         ColSchema object containing all column names and data types
         for the dataframe containing samples + labels.
         """
-        return merge_colschemas(*[self.sample_col_schema, self.label_col_schema])
+        return self.label_col_schema | self.sample_col_schema
 
     @property
     def label_colnames(self) -> tuple[str, ...]:
@@ -280,7 +434,7 @@ class DefectDetectionDataSet:
         :param dataset_cfg: DataSetConfig derived object specifying
             how/where to read in the data labels and samples.
         """
-        return cls(sample_and_label_data=dataset_cfg.full_dataset())
+        return cls(sample_and_label_data=dataset_cfg.full_dataset)
 
     def amplify_data(self):
         """
