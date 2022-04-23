@@ -9,15 +9,24 @@ from __future__ import annotations
 import inspect
 import itertools
 import os
-import string
+import sys
 from abc import abstractmethod, ABC
-from collections import UserDict
-from dataclasses import dataclass
-from enum import unique, Enum
+from functools import cached_property
+
+
 from pathlib import Path
 from types import DynamicClassAttribute
-from typing import Iterable, Optional, TypeAlias, Iterator, ClassVar, Type
+from typing import Iterable, Optional, TypeAlias, ClassVar, Type, Collection, TypeVar, TYPE_CHECKING
 
+from aenum import extend_enum
+
+if TYPE_CHECKING:
+    from enum import (
+        unique,
+        Enum,
+    )  # MyPy doesn't support advancedenum typechecks, so for typechecking use std version.
+else:
+    from aenum import unique, Enum
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
@@ -28,11 +37,16 @@ ColType: TypeAlias = ExtensionDtype | np.dtype | type | str
 
 
 class ColEnum(Enum):
+    """Enum storing column name(s) + data type(s) for a (DataFrame) schema."""
+
+    # Allows docstrings for Enum members using the `aenum` library (same author as stdlib's Enum module btw).
+    _init_ = "value __doc__"
+
     @DynamicClassAttribute
     def type(self):
         """
-        Alias for an enum's 'value' attribute which makes sense in the context of
-        column name -> type mappings.
+        Alias for an enum's 'value' attribute which makes
+        sense in the context of column name -> type mappings.
         """
         if self.value is str:
             return pd.StringDtype()
@@ -40,208 +54,209 @@ class ColEnum(Enum):
 
 
 @unique
-class ColSpec(ColEnum):
+class ColSchema(ColEnum):
     """
-    Used to specify the column names and data types for a generic data
+    Used to specify the schema (column names and data types) for a generic data
     storage object which has a schema (e.g. a pandas DataFrame).
     """
 
 
-class ColSpecDefectData(ColSpec):
-    """
-    Used to specify the column names and data types for a defect dataset/labelset/sampleset.
-    A user-defined mapping whose keys are also accessible via the '.' operator; e.g. ColSpec.COLNAME.name
-    """
-
-    LABEL_SAMPLE_ID: ColType = str
-    """
-    Column with equal entries for sample and label data so 
-    sample and label data can be merged in the right order.
-    """
+ColSchemaType: TypeAlias = ColSchema | Type[ColSchema]
 
 
-def combine_colspecs(
-    colspec_a: ColType | Type[ColSpec], colspec_b: ColType | Type[ColSpec]
-) -> Type[ColSpec]:
-    """Combines"""
-    if not (issubclass(colspec_a, ColEnum) and issubclass(colspec_b, ColEnum)):  # type: ignore
-        raise TypeError(
-            f"Can only combine {ColEnum.__name__} objects, "
-            f"got {type(colspec_a)!r} and {type(colspec_b)!r}."
+ColSchemaDefectData = extend_enum(
+    enumeration=ColSchema,
+    name="ColSchemaDefectData",
+    _init_="value __doc__",
+    __doc__="Used to the schema (column names and data types) for a defect dataset/labelset/sampleset which has a schema (e.g. a pandas DataFrame)",
+)
+# value=str,
+# __doc__=,
+# )
+# )
+
+#
+# )
+
+
+print(f"Temporary breakpoint in {__name__}")
+#
+# LABEL_SAMPLE_ID: ColType = str
+# """
+# Column with equal entries for sample and label data so
+# sample and label data can be merged in the right order.
+# """
+#
+
+
+def merge_colschemas(*colschemas: Collection[ColSchemaType]) -> ColSchemaType:
+    """
+    Merges multiple ColSchema schemas into one.
+
+    :raises TypeError:
+        - If ColSchemas contain overlapping names with different values/types assigned.
+        - If an objects is passed in the 'colspecs' argument which is not a subclass of ColEnum.
+        - If an empty collection is passed to the 'colspecs' argument.
+    """
+    # Make our Collection instance an iterable and a list if it isn't one already
+    if not isinstance(colschemas, Iterable) or not isinstance(colschemas, list):
+        colschemas = list(colschemas)
+
+    # Check that we won't reach the recursion limit
+    if len(colschemas) > (reclim := sys.getrecursionlimit()):
+        raise ValueError(
+            f"Number of column schemas may not exceed the recursion limit (={reclim})."
         )
 
-    for member in colspec_a:  # type: ignore
-        if member.name in colspec_b.__members__ and member.type != (  # type: ignore
-            memb_type := getattr(colspec_b, member.name).type  # type: ignore
+    # Check that the next schema we're trying to merge is of the proper type.
+    for colspec in colschemas:
+        if not issubclass(colspec, ColEnum):  # type: ignore
+            raise TypeError(
+                f"Can only combine {ColEnum.__name__} objects; got a {type(colspec)!r} type."
+            )
+
+    # Raise an error if the supplied Collection of schemas is empty.
+    if not colschemas:
+        raise TypeError(f"Tried to merge empty {ColSchema.__name__} collection...")
+
+    # Return the schema unaltered if only a single one was passed.
+    if len(colschemas) == 1:
+        return colschemas[0]
+
+    # Get the first to schema's to merge them, and pack the remaining ones in a tuple called 'remaining'
+    # for the next recursion.
+    colschema_a, colschema_a, *remaining = colschemas
+
+    # Check that we don't have duplicate keys
+    for member in colschema_a:  # type: ignore
+        if member.name in colschema_a.__members__ and member.type != (  # type: ignore
+            memb_type := getattr(colschema_a, member.name).type  # type: ignore
         ):
             raise TypeError(
-                f"Cannot add {ColSpec.__name__} objects with overlapping keys but different type values "
+                f"Cannot add {ColSchema.__name__} objects with overlapping keys but different type values "
                 f"to prevent accidental overwrites:\n Name at issue: {member.name!r} "
                 f"with different types {member.type!r} and {memb_type!r}"
             )
-    return ColSpec(  # type: ignore
-        ColSpec.__name__,
-        {at.name: at.type for at in set(itertools.chain(colspec_a, colspec_b))},  # type: ignore
+
+    # Merge the first two schema's into a new schema
+    new_colschema = ColSchema(  # type: ignore
+        ColSchema.__name__,
+        {at.name: at.type for at in set(itertools.chain(colschema_a, colschema_a))},  # type: ignore
         module=__name__,
     )
 
+    if remaining:  # If unmerged schemas remain, merge them with the newly created one.
+        return merge_colschemas(*[new_colschema, *remaining])
+    else:  # Otherwise return the merged schemas
+        return new_colschema
 
-def new_df_from_colspec(colspec: ColSpec | Type[ColSpec]) -> DataFrame:
+
+def new_df_from_colspec(colspec: ColSchemaType) -> DataFrame:
     """Creates an empty DataFrame with the column names and types as specified by for this ColumnSpec instance."""
     return pd.DataFrame({col.name: pd.Series(dtype=col.type) for col in colspec})  # type: ignore
 
 
-class ColumnSpec(UserDict):
-    """
-    Used to specify the column names and data types for a dataset/labelset/sampleset.
-    A user-defined mapping whose keys are also accessible via the '.' operator; e.g. ColumnSpec.COLNAME.name
-    """
-
-    _DEFAULT_ID_COLUMN = "LABEL_SAMPLE_ID"
-    _DEFAULT_ID_COLUMN_TYPE = int
-
-    def __init__(self, /, **kwargs):
-        self._data_attr_was_created = False
-        super().__init__(**kwargs)
-        setattr(self, self._DEFAULT_ID_COLUMN, self._DEFAULT_ID_COLUMN_TYPE)
-
-    def spawn_empty_dframe(self) -> DataFrame:
-        """Creates an empty DataFrame with the column names and types as specified by for this ColumnSpec instance."""
-        return pd.DataFrame({col: pd.Series(dtype=dt) for col, dt in self})
-
-    @property
-    def columns(self) -> tuple[str, ...]:
-        return tuple(self.data)
-
-    @property
-    def types(self) -> tuple[ColumnType, ...]:
-        return tuple(self.data.values())
-
-    def __setitem__(self, key, value):
-        if key == "_data_attr_was_created":
-            self.__dict__["_data_attr_was_created"] = value
-        elif key == "data" and self._data_attr_was_created:
-            raise ValueError("'data' key is reserved...")
-        elif key == "data":
-            self.__dict__["data"] = value
-            self._data_attr_was_created = True
-        else:
-            if not isinstance(key, str):
-                raise TypeError("Column name must be a string")
-
-            # Restrict keys such that they always work in
-            if key.startswith("_") or not all(
-                s in string.ascii_letters + string.digits + "_" for s in key
-            ):
-                raise ValueError(
-                    f"Invalid key: {key!r}. Can only set alphanumeric names \n"
-                    " which may contain underscores but cannot start with one."
-                )
-            # Make sure that if we pass string as type that it becomes a proper
-            # pandas string datatype and doesn't degrade to 'object' datatype.
-            if value is str:
-                value = pd.StringDtype()
-
-            # We only allow assignment of types
-            if not isinstance(value, (ExtensionDtype, np.dtype, str, type)):
-                raise TypeError(
-                    "ColumnSpec attributes (which represent column names) \n"
-                    "can only be assigned types: np.dtype/type/str/pandas.core.base.ExtensionDtype. \n"
-                    f"Got: {value}."
-                )
-            self.data[key] = value
-
-    def __iter__(self) -> Iterator[tuple[str, ColumnType]]:
-        yield from self.data.items()
-
-    def __getattr__(self, item):
-        if isinstance(item, str) and item in self.data.keys():
-            return item
-        return self.data[item]
-
-    def __setattr__(self, key, value):
-        self.__setitem__(key=key, value=value)
-
-    def __add__(self, other: ColumnSpec) -> ColumnSpec:
-        if not isinstance(other, ColumnSpec):
-            return NotImplemented
-        self.data |= other.data
-        return self
-
-    def __sub__(self, other: ColumnSpec) -> ColumnSpec:
-        if not isinstance(other, ColumnSpec):
-            return NotImplemented
-        for key in other.data:
-            del self.data[key]
-        return self
+# Make sure _ColSchemaDefectData subclasses are recognized by static type checker as valid by binding a typevar to it.
+ColSchemaDefectDataType = TypeVar("ColSchemaDefectDataType", bound=ColSchemaDefectData)
 
 
 class DataSetConfig(ABC):
+
+    _CACHED_PROPERTIES: tuple[str, ...] = ("full_dataset", "label_data", "sample_data")
+    """Properties which need to be (re)loaded if an attribute changes change."""
+
     def __init__(
         self,
         sample_path_s: os.PathLike | Iterable[os.PathLike],
-        sample_col_spec: ColSpec,
+        sample_col_schema: ColSchemaDefectDataType,
         label_path: os.PathLike,
-        label_col_spec: ColSpec,
+        label_col_schema: ColSchemaDefectDataType,
         sample_type_desc: str = "sample",
     ):
         """
         Provides ways to load a training dataset's samples and labels into a DataFrame.
 
-        :param sample_path_s: One ore more path-like object(s) pointing to a sample file.
-        :param sample_col_spec: ColSpec (column specification) object declaring column names and types
-            for the samples in this dataset.
-        :param label_path: One ore more path-like object(s) pointing to corresponding label files.
-        :param label_col_spec: ColSpec (column specification) object declaring column names and types
-            for the labels in this dataset.
-        :param sample_type_desc: (optional) description of this kind of sample (default = "sample".
+        :param sample_path_s: One ore more path-like object(s)
+            pointing to a sample file.
+        :param sample_col_schema: ColSchemaDefectData object representing
+            column schema (column names + dtypes) for the DataFrame to
+            be created which will contain the samples.
+        :param label_path: One ore more path-like object(s)
+            pointing to corresponding label files.
+        :param label_col_schema: ColSchemaDefectData object representing
+            column schema (column names + dtypes) for the DataFrame to
+            be created which will contain the samples.
+        :param sample_type_desc: (optional) description for this kind
+            of sample (default = "sample").
         """
         self.sample_path_s = (
             sample_path_s if isinstance(sample_path_s, Iterable) else [sample_path_s]
         )
         self.label_path = Path(label_path)
 
-        self.sample_col_spec: ColSpec = sample_col_spec
-        self.label_col_spec: ColSpec = label_col_spec
+        self.sample_col_schema: ColSchemaType = sample_col_schema
+        self.label_col_schema: ColSchemaType = label_col_schema
 
         self.sample_type_desc: str = sample_type_desc
 
-    @property
-    def column_spec(self) -> ColSpec:
-        """
-        ColSpec object containing all column names and data types
-        for the dataframe containing samples + labels
-        """
-        return self.sample_col_spec + self.label_col_spec
-
-    @property
-    def label_columns(self) -> tuple[str, ...]:
-        return self.label_col_spec.columns
-
-    @property
-    def sample_columns(self) -> tuple[str, ...]:
-        return self.sample_col_spec.columns
-
+    @cached_property
     @abstractmethod
-    def load_full_dataset(self) -> DataFrame:
+    def full_dataset(self) -> DataFrame:
         """Merges sample and label DataFrames into one coherent whole."""
         ...
 
+    @cached_property
     @abstractmethod
-    def load_label_data(
-        self,
-        label_path_or_paths: Optional[Path | Iterable[Path]],
-        label_column_spec: Optional[ColSpec] = None,
-    ) -> pd.DataFrame:
-        """Provides way to load labels for a specific dataset into DataFrame format."""
+    def label_data(self) -> pd.DataFrame:
+        """
+        Provides way to load labels for a specific dataset into
+        a DataFrame using the label path passed to the constructor.
+        """
         ...
 
+    @cached_property
     @abstractmethod
-    def load_sample_data(
-        self, data_path_or_paths: Path | Iterable[Path], data_colspec: ColSpec
-    ) -> DataFrame:
-        """Provides way to load samples for a specific dataset into DataFrame format."""
+    def sample_data(self) -> DataFrame:
+        """
+        Provides way to load samples for a specific dataset into
+        a DataFrame using the label path passed to the constructor.
+        """
         ...
+
+    @property
+    def column_schema(self) -> ColSchema | Type[ColSchema]:
+        """
+        ColSchema object containing all column names and data types
+        for the dataframe containing samples + labels.
+        """
+        return merge_colschemas(*[self.sample_col_schema, self.label_col_schema])
+
+    @property
+    def label_colnames(self) -> tuple[str, ...]:
+        """Retrieve column names for the label data."""
+        return tuple(self.label_col_schema.keys())  # type: ignore
+
+    @property
+    def sample_colnames(self) -> tuple[str, ...]:
+        """Retrieve column names for the sample data."""
+        return tuple(self.sample_col_schema.keys())  # type: ignore
+
+    @property
+    def label_coltypes(self) -> tuple[str, ...]:
+        """Retrieve column datatypes for the label data."""
+        return tuple(self.label_col_schema.values())  # type: ignore
+
+    @property
+    def sample_coltypes(self) -> tuple[str, ...]:
+        """Retrieve column datatypes for the sample data."""
+        return tuple(self.sample_col_schema.values())  # type: ignore
+
+    def __setattr__(self, key, value):
+        # Override setattr such that cached properties are reset if the relevant attributes have changed
+        self.__dict__[key] = value
+        for cached_attrname in type(self)._CACHED_PROPERTIES:
+            if cached_attrname in self.__dict__:
+                self.__dict__.pop(cached_attrname, None)
 
     def __repr__(self) -> str:
         return f"""{type(self).__name__}({", ".join(f'{k}={v}' for k, v in vars(self).items())})"""
@@ -257,7 +272,7 @@ class DefectDetectionDataSet:
         self._data_filtered: DataFrame = sample_and_label_data.copy()
 
     @classmethod
-    def from_dataset_configuration(cls, dataset_cfg: DataSetConfig) -> DefectDetectionDataSet:
+    def from_dataset_config(cls, dataset_cfg: DataSetConfig) -> DefectDetectionDataSet:
         """
         Instantiates a DefectDetectionDataSet (derived) object based on a dataset configuration
         (i.e. DataSetConfig object).
@@ -265,7 +280,7 @@ class DefectDetectionDataSet:
         :param dataset_cfg: DataSetConfig derived object specifying
             how/where to read in the data labels and samples.
         """
-        return cls(sample_and_label_data=dataset_cfg.load_full_dataset())
+        return cls(sample_and_label_data=dataset_cfg.full_dataset())
 
     def amplify_data(self):
         """
