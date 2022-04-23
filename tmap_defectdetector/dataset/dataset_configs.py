@@ -29,7 +29,7 @@ from tmap_defectdetector.pathconfig.paths import DIR_DATASETS
 
 
 @dataclass(repr=False)
-class ImageDataset(ColSchemaDefectData):
+class ColSchemaSamplesImageData(ColSchemaDefectData):
     """
     Used to specify the schema (column names and data types) for a
     defect dataset/labelset/sampleset pertaining image samples specifically.
@@ -52,7 +52,17 @@ class ImageDataset(ColSchemaDefectData):
 
 
 @dataclass(repr=False)
-class ColSchemaLabelsELPV(ColSchemaDefectData):
+class ColSchemaLabels(ColSchemaDefectData):
+    """Specifies schema for label data."""
+
+
+@dataclass(repr=False)
+class ColSchemaFullImageData(ColSchemaLabels, ColSchemaSamplesImageData):
+    """Specifies schema for an image dataset's label _and_ sample data."""
+
+
+@dataclass(repr=False)
+class ColSchemaLabelsELPV(ColSchemaLabels):
     """Specifies schema for ELPV label data."""
 
     LABEL_FILENAME: SchemaEntry = SchemaEntry(
@@ -76,7 +86,7 @@ class ColSchemaLabelsELPV(ColSchemaDefectData):
 
 
 @dataclass(repr=False)
-class ColSchemaSamplesELPV(ImageDataset):
+class ColSchemaSamplesELPV(ColSchemaSamplesImageData):
     """Specifies schema for ELPV sample data."""
 
     SAMPLE_PATH: SchemaEntry = SchemaEntry(
@@ -92,14 +102,16 @@ class ColSchemaSamplesELPV(ImageDataset):
 
 
 @dataclass(repr=False)
-class ColSchemaFullELPV(ColSchemaLabelsELPV, ColSchemaSamplesELPV):
+class ColSchemaFullELPV(ColSchemaFullImageData, ColSchemaLabelsELPV, ColSchemaSamplesELPV):
     """Specifies schema for ELPV label _and_ sample data."""
 
     pass
 
 
 class ImageDatasetConfig(DataSetConfig):
-
+    LABEL_SCHEMA: ClassVar[ColSchemaLabels] = ColSchemaLabelsELPV()
+    SAMPLE_SCHEMA: ClassVar[ColSchemaSamplesImageData] = ColSchemaSamplesELPV()
+    FULL_SCHEMA: ClassVar[ColSchemaFullImageData] = ColSchemaFullELPV()
     _RASTER_IMG_EXTENSIONS: set[str] = {
         ".tif",
         ".tiff",
