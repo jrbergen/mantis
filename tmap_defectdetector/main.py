@@ -1,41 +1,68 @@
 """The main file containing the program's entrypoint."""
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 from tmap_defectdetector.compatibility_checks import version_check
-from tmap_defectdetector.dataset_downloaders import DatasetDownloaderELPV
+from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
+from tmap_defectdetector.dataset.downloaders import DatasetDownloaderELPV
 
-from tmap_defectdetector.datasets import ImageDataSetELPV
-from tmap_defectdetector.image_helpers import file_is_image
+from tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV
+from tmap_defectdetector.dataset.schemas import SchemaLabelsELPV
+
 from tmap_defectdetector.logger import log
+from tmap_defectdetector.pathconfig.path_helpers import open_directory_with_filebrowser
+from tmap_defectdetector.pathconfig.paths import DIR_TMP
 
 
 def cli():
+    """CLI is not yet implemented."""
     ...
 
 
-def main():
-    version_check()
+def example_elpv(save_and_open_amplified_dataset: bool = True):
+    """
+    Performs an example run which (down)loads the ELPV defect image dataset,
+    amplifies it with mirroring, rotations, and translations, and then optionally
+    shows it .
 
+    :param save_and_open_amplified_dataset: (optional) flag to indicate whether to save
+        the example amplified dataset as images to a temporary directory.
+        Can take quite some time and space(default = False)
+    """
     # Initialize the dataset downloader and download the ELPV dataset from its git repository.
     downloader = DatasetDownloaderELPV()
     downloader.download()  # The dataset is downloaded to %LOCALAPPDATA%/.tmapdd/datasets/dataset-elpv/ (on Windows)
 
-    # We first find the image paths in the image dataset directories and accept the files
-    # which comply with our anonymous (lambda) function check.
-    sample_files = downloader.get_data_files(
-        filechecker_function=lambda p: Path.is_file(p) and file_is_image(p)
-    )
-    label_files = downloader.label_paths
+    # Initialize/load the ELPV dataset using the ELPV dataset configuration.
+    elpv_dataset_config = DataSetConfigELPV()
+    dataset = ImageDataSetELPV(dataset_cfg=elpv_dataset_config)
 
-    # Now we know where the label path(s) and the data (image file) paths are, we can construct the ImageDataSet.
-    dataset = ImageDataSetELPV.from_paths(data_paths=sample_files, label_paths=label_files)
+    # Filter dataset -> use only the polycrystalline solarpanels w/ type 'poly'.
+    dataset.filter(query=f"{SchemaLabelsELPV().TYPE.name}=='poly'")
 
     # Here comes the preprocessing step (we could e.g. make a ImageDataSetPreProcessor class/function or perhaps
     # put preprocessing methods in the ImageDataSet class itself later.
     dataset.amplify_data()
 
+    # Specify and create a temporary directory to save our (amplified) image dataset.
+    # Then open it in your OS's default filebrowser
+    # Warning; can take a long time and quite a lot of storage space depending
+    # on the number of samples in the dataset as well as the size of the accompanied images.
+    if save_and_open_amplified_dataset:
+        new_data_dir = Path(
+            DIR_TMP,
+            f"tmap_defectdetector_dataset_{datetime.utcnow().strftime('%Y_%m_%d_T%H%M%SZ')}",
+        )
+        new_data_dir.mkdir(parents=True, exist_ok=True)
+        dataset.save_images(new_data_dir)
+        open_directory_with_filebrowser(new_data_dir)
+
+
+def main():
+    version_check()
+    example_elpv()
     log.info("All done!")
 
 

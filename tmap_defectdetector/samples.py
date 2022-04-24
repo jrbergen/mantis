@@ -70,17 +70,15 @@ class TrainingSampleImage(TrainingSample):
 
 class SampleLabelsBase:
 
-    __slots__ = ("label_or_labels", "label_paths")
+    __slots__ = ("label_or_labels",)
     # Defining attributes in the __slots__ dunder attribute makes attribute access faster.
     # However, if you do this you can no longer dynamically add new attributes to an instantiated class.
 
     def __init__(
         self,
         label_or_labels: pd.DataFrame,
-        label_paths: Iterable[Path] = tuple(),
     ):
         self.label_or_labels: pd.DataFrame = label_or_labels
-        self.label_paths: Iterable[Path] = label_paths
 
     @classmethod
     def from_dict(
