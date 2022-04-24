@@ -26,7 +26,6 @@ class ColName(str):
     _ALLOWED_CHARS: str = string.ascii_letters + string.digits + "_"
 
     def __new__(cls, s: str) -> ColName:
-
         if any(substr not in cls._ALLOWED_CHARS for substr in s):
             raise ValueError(
                 f"Column name may only consist of ASCII letters, digits, and underscores, but got {s!r}."
@@ -90,7 +89,7 @@ class SchemaEntry:
 
     @property
     def __doc__(self) -> str:
-        return self.docstring if self.docstring else type(self).__doc__
+        return str(self.docstring) if self.docstring else str(type(self).__doc__)
 
     def __eq__(self, other: SchemaEntry | object) -> bool:
         if isinstance(other, SchemaEntry):
@@ -112,7 +111,7 @@ SchemaDerived = TypeVar("SchemaDerived")
 
 
 @dataclass
-class ColSchema:
+class Schema:
     def __init__(self, colentries: Mapping[str, SchemaEntry]):
         """
         Used to specify the schema (column names and data types) for a generic data
@@ -220,12 +219,12 @@ class ColSchema:
     def __hash__(self) -> int:
         return hash(f"{key}={str(value)}_{hash(value)}" for key, value in self.items())
 
-    def __eq__(self, other: ColSchema | object) -> bool:
-        if not isinstance(other, ColSchema):
+    def __eq__(self, other: Schema | object) -> bool:
+        if not isinstance(other, Schema):
             return NotImplemented
         return all(other_entry in self.schema_entries for other_entry in other.schema_entries)
 
-    def __or__(self, other: ColSchema) -> ColSchema:
+    def __or__(self, other: Schema) -> Schema:
         """
         Creates union of two ColSchema instances (union is equivalent to addition for this class).
 
@@ -234,23 +233,23 @@ class ColSchema:
         """
         return self.__add__(other)
 
-    def __add__(self, other: ColSchema) -> ColSchema:
+    def __add__(self, other: Schema) -> Schema:
         """
         Adds/merges two ColSchema instances (addition is equivalent to union for this class).
 
         :raises ValueError: if non-identical SchemaEntry members of the schemas have identical column names.
         :raises ValueError: if non-identical SchemaEntry members of the schemas have identical attribute names.
         """
-        return ColSchema(colentries=self._merged_schemas_to_attrdict(other))
+        return Schema(colentries=self._merged_schemas_to_attrdict(other))
 
-    def _merged_schemas_to_attrdict(self, other: ColSchema):
+    def _merged_schemas_to_attrdict(self, other: Schema):
         """
         Adds/merges two ColSchema instances (addition is equivalent to union for this class).
 
         :raises ValueError: if non-identical SchemaEntry members of the schemas have identical column names.
         :raises ValueError: if non-identical SchemaEntry members of the schemas have identical attribute names.
         """
-        if not isinstance(other, ColSchema):
+        if not isinstance(other, Schema):
             return NotImplemented
 
         schema_dict_self = {k: v for k, v in vars(self).items() if isinstance(v, SchemaEntry)}
@@ -268,25 +267,25 @@ class ColSchema:
         return schema_dict_self
 
     def combine_with_schema(
-        self, other_schema: ColSchema, target_schema_type: Type[SchemaDerived]
+        self, other_schema: Schema, target_schema_type: Type[SchemaDerived]
     ) -> SchemaDerived:
         new_schema_dict: dict[str, SchemaEntry] = self._merged_schemas_to_attrdict(other_schema)
-        if not issubclass(target_schema_type, ColSchema):
+        if not issubclass(target_schema_type, Schema):
             raise TypeError(f"Target schema must be a subclass of {target_schema_type.__name__}.")
         # !NOTE: This 'SchemaDerived' typevar approach seems wrong; find how this should be done.
-        target_schema_type: Type[ColSchema]  # type: ignore
+        target_schema_type: Type[Schema]  # type: ignore
         return target_schema_type(colentries=new_schema_dict)  # type: ignore
 
     def __repr__(self) -> str:
         return (
-            f"{ColSchema.__name__}("
+            f"{Schema.__name__}("
             + ", ".join(f"{k}={v}" for k, v in vars(self).items() if isinstance(v, SchemaEntry))
             + ")"
         )
 
 
 @dataclass(repr=False)
-class ColSchemaDefectData(ColSchema):
+class SchemaDefectData(Schema):
     """
     Used to specify the schema (column names and data types) for a
     defect detection dataset (e.g. a pandas DataFrame).
@@ -304,11 +303,43 @@ class ColSchemaDefectData(ColSchema):
 
 
 # Make sure _ColSchemaDefectData subclasses are recognized by static type checker as valid by binding a typevar to it.
-ColSchemaDefectDataType = TypeVar("ColSchemaDefectDataType", bound=ColSchemaDefectData)
+SchemaDefectDataType = TypeVar("SchemaDefectDataType", bound=SchemaDefectData)
 
 
 @dataclass(repr=False)
-class SchemaSamplesImageData(ColSchemaDefectData):
+class SchemaLabels(SchemaDefectData):
+    """Specifies schema for label data."""
+
+    pass
+
+
+@dataclass(repr=False)
+class SchemaSamples(SchemaDefectData):
+    """
+    Used to specify the schema (column names and data types) for sample data.
+    """
+
+    SAMPLE_PATH: SchemaEntry = SchemaEntry(
+        "SAMPLE_PATH",
+        str,
+        docstring="Full path of the file which stores the sample data, as string.",
+    )
+    SAMPLE: SchemaEntry = SchemaEntry(
+        "SAMPLE",
+        object,  # sould be of multiple types; use 'object' type for basecalass to be safe.
+        docstring="An entry representing a data sample",
+    )
+
+
+@dataclass(repr=False)
+class SchemaFull(SchemaLabels, SchemaSamples):
+    """Specifies schema for a dataset's label _and_ sample data."""
+
+    pass
+
+
+@dataclass(repr=False)
+class SchemaSamplesImageData(SchemaSamples):
     """
     Used to specify the schema (column names and data types) for a
     defect dataset/labelset/sampleset pertaining image samples specifically.
@@ -328,11 +359,6 @@ class SchemaSamplesImageData(ColSchemaDefectData):
     TRANSL_Y: SchemaEntry = SchemaEntry(
         "TRANSL_Y", np.int16, docstring="Translation of X-pixel positions w.r.t. original image."
     )
-    SAMPLE_PATH: SchemaEntry = SchemaEntry(
-        "SAMPLE_PATH",
-        str,
-        docstring="Full path of the file which stores the data labels, as string.",
-    )
     SAMPLE: SchemaEntry = SchemaEntry(
         "SAMPLE",
         object,  # should be an np.ndarray but use 'object' as type for compatibility with pandas DataFrame.
@@ -341,10 +367,7 @@ class SchemaSamplesImageData(ColSchemaDefectData):
 
 
 @dataclass(repr=False)
-class SchemaLabels(ColSchemaDefectData):
-    """Specifies schema for label data."""
-
-
-@dataclass(repr=False)
 class SchemaFullImageData(SchemaLabels, SchemaSamplesImageData):
     """Specifies schema for an image dataset's label _and_ sample data."""
+
+    pass

@@ -24,12 +24,12 @@ from pandas import DataFrame
 import pandas as pd
 
 from tmap_defectdetector.dataset.base.schemas_base import (
-    ColSchema,
-    ColSchemaDefectData,
-    ColSchemaDefectDataType,
+    Schema,
     SchemaSamplesImageData,
     SchemaLabels,
     SchemaFullImageData,
+    SchemaSamples,
+    SchemaFull,
 )
 from tmap_defectdetector.logger import log
 
@@ -39,25 +39,28 @@ class DataSetConfig(ABC):
     _CACHED_PROPERTIES: tuple[str, ...] = ("full_dataset", "label_data", "sample_data")
     """Properties which need to be (re)loaded if an attribute changes change."""
 
+    SCHEMA_LABELS: ClassVar[SchemaLabels] = SchemaLabels()
+    SCHEMA_SAMPLES: ClassVar[SchemaSamples] = SchemaSamples()
+
     def __init__(
         self,
         sample_dirs: os.PathLike | Collection[os.PathLike],
-        schema_samples: ColSchemaDefectDataType,
+        schema_samples: SchemaSamples,
         label_path: os.PathLike,
-        schema_labels: ColSchemaDefectDataType,
+        schema_labels: SchemaLabels,
         sample_type_desc: str = "sample",
     ):
         """
         Provides ways to load a training dataset's samples and labels into a DataFrame.
 
-        :param sample_dirs: :param sample_dirs: One ore more path-like object(s)
+        :param sample_dirs: One ore more path-like object(s)
             pointing to a directory with sample files.
-        :param schema_samples: ColSchemaDefectData object representing
+        :param schema_samples: SchemaSamples (derived) object representing
             column schema (column names + dtypes) for the DataFrame to
             be created which will contain the samples.
         :param label_path: One ore more path-like object(s)
             pointing to corresponding label files.
-        :param schema_labels: ColSchemaDefectData object representing
+        :param schema_labels: SchemaLabels (derived) object representing
             column schema (column names + dtypes) for the DataFrame to
             be created which will contain the samples.
         :param sample_type_desc: (optional) description for this kind
@@ -70,8 +73,8 @@ class DataSetConfig(ABC):
         )
         self.label_path = Path(label_path)
 
-        self.schema_samples: ColSchema = schema_samples
-        self.schema_labels: ColSchema = schema_labels
+        self.schema_samples: Schema = schema_samples
+        self.schema_labels: Schema = schema_labels
 
         self.sample_type_desc: str = sample_type_desc
 
@@ -116,12 +119,14 @@ class DataSetConfig(ABC):
         ...
 
     @property
-    def schema_full(self) -> ColSchema:
+    def schema_full(self) -> SchemaFull:
         """
         ColSchema object containing all column names and data types
         for the dataframe containing samples + labels.
         """
-        return self.schema_labels | self.schema_samples
+        return self.schema_labels.combine_with_schema(
+            self.schema_samples, target_schema_type=SchemaFull
+        )
 
     @property
     def label_colnames(self) -> tuple[str, ...]:
@@ -155,9 +160,8 @@ class DataSetConfig(ABC):
 
 
 class ImageDatasetConfig(DataSetConfig):
-    LABEL_SCHEMA: ClassVar[SchemaLabels] = SchemaLabels()
-    SAMPLE_SCHEMA: ClassVar[SchemaSamplesImageData] = SchemaSamplesImageData()
-    FULL_SCHEMA: ClassVar[SchemaFullImageData] = SchemaFullImageData()
+    SCHEMA_LABELS: ClassVar[SchemaLabels] = SchemaLabels()
+    SCHEMA_SAMPLES: ClassVar[SchemaSamplesImageData] = SchemaSamplesImageData()
 
     _RASTER_IMG_EXTENSIONS: set[str] = {
         ".tif",
@@ -187,8 +191,8 @@ class ImageDatasetConfig(DataSetConfig):
         self,
         sample_dirs: os.PathLike | Collection[os.PathLike],
         label_path: os.PathLike,
-        schema_samples: ColSchemaDefectData = LABEL_SCHEMA,
-        schema_labels: ColSchemaDefectData = SAMPLE_SCHEMA,
+        schema_samples: SchemaSamplesImageData = SCHEMA_SAMPLES,
+        schema_labels: SchemaLabels = SCHEMA_LABELS,
         sample_type_desc: str = "solar panel sample image",
     ):
         """
@@ -260,11 +264,11 @@ class ImageDatasetConfig(DataSetConfig):
             ) from err
 
         # Check that column name and type used for label & sample ID are equal.
-        if self.LABEL_SCHEMA.LABEL_SAMPLE_ID != self.SAMPLE_SCHEMA.LABEL_SAMPLE_ID:
+        if self.SCHEMA_LABELS.LABEL_SAMPLE_ID != self.SCHEMA_SAMPLES.LABEL_SAMPLE_ID:
             raise ValueError(
                 f"Cannot merge label data with sample data: label schema entry "
-                f"{self.LABEL_SCHEMA.LABEL_SAMPLE_ID.name!r} is not congruent with "
-                f"{self.SAMPLE_SCHEMA.LABEL_SAMPLE_ID.name!r}."
+                f"{self.SCHEMA_LABELS.LABEL_SAMPLE_ID.name!r} is not congruent with "
+                f"{self.SCHEMA_SAMPLES.LABEL_SAMPLE_ID.name!r}."
             )
 
         # Check that label data and sample data are of equal length
@@ -276,7 +280,7 @@ class ImageDatasetConfig(DataSetConfig):
             )
 
         # Identical columns present in both label and sample data to merge on.
-        on_column: str = self.LABEL_SCHEMA.LABEL_SAMPLE_ID.name
+        on_column: str = self.SCHEMA_LABELS.LABEL_SAMPLE_ID.name
 
         log.info("Merging label and sample datasets...")
         full_df = label_data.merge(sample_data, how="outer", on=on_column, sort=True)

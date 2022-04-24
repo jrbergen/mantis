@@ -21,7 +21,7 @@ from tmap_defectdetector.dataset.base.dataset_configs_base import (
 )
 from tmap_defectdetector.dataset.base.schemas_base import (
     ColName,
-    ColSchemaDefectData,
+    SchemaDefectData,
 )
 from tmap_defectdetector.dataset.schemas import (
     SchemaLabelsELPV,
@@ -35,17 +35,17 @@ from tmap_defectdetector.pathconfig.paths import DIR_DATASETS
 
 class DataSetConfigELPV(ImageDatasetConfig):
 
-    LABEL_SCHEMA: ClassVar[SchemaLabelsELPV] = SchemaLabelsELPV()
-    SAMPLE_SCHEMA: ClassVar[SchemaSamplesELPV] = SchemaSamplesELPV()
-    FULL_SCHEMA: ClassVar[SchemaFullELPV] = SchemaFullELPV()
+    SCHEMA_LABELS: ClassVar[SchemaLabelsELPV] = SchemaLabelsELPV()
+    SCHEMA_SAMPLES: ClassVar[SchemaSamplesELPV] = SchemaSamplesELPV()
+    SCHEMA_FULL: ClassVar[SchemaFullELPV] = SchemaFullELPV()
 
     def __init__(
         self,
         sample_dirs: os.PathLike
         | Collection[os.PathLike] = (DIR_DATASETS / "dataset-elpv" / "images",),
         label_path: os.PathLike = Path(DIR_DATASETS / "dataset-elpv" / "labels.csv"),
-        schema_samples: ColSchemaDefectData = LABEL_SCHEMA,
-        schema_labels: ColSchemaDefectData = SAMPLE_SCHEMA,
+        schema_samples: SchemaSamplesELPV = SCHEMA_SAMPLES,
+        schema_labels: SchemaLabelsELPV = SCHEMA_LABELS,
         sample_type_desc: str = "solar panel sample image",
     ):
         """
@@ -87,9 +87,9 @@ class DataSetConfigELPV(ImageDatasetConfig):
             lpath,
             dtype=["|U19", "<f8", "|U4"],
             names=[
-                type(self).LABEL_SCHEMA.LABEL_PATH.name,
-                type(self).LABEL_SCHEMA.PROBABILITY.name,
-                type(self).LABEL_SCHEMA.TYPE.name,
+                type(self).SCHEMA_LABELS.LABEL_PATH.name,
+                type(self).SCHEMA_LABELS.PROBABILITY.name,
+                type(self).SCHEMA_LABELS.TYPE.name,
             ],
             encoding="utf-8",
         )
@@ -97,15 +97,15 @@ class DataSetConfigELPV(ImageDatasetConfig):
 
         log.info("Wrapping up label DataFrame construction...")
         # Make column with path to label file
-        label_df[DataSetConfigELPV.LABEL_SCHEMA.LABEL_FILENAME.name] = [lpath] * len(label_df)
+        label_df[DataSetConfigELPV.SCHEMA_LABELS.LABEL_FILENAME.name] = [lpath] * len(label_df)
 
         # Add column with ids identifying which labels belong to which samples (in this case the path is used)
-        label_df[DataSetConfigELPV.LABEL_SCHEMA.LABEL_SAMPLE_ID.name] = [
-            str(Path(p).name) for p in label_df[type(self).LABEL_SCHEMA.LABEL_PATH.name]
+        label_df[DataSetConfigELPV.SCHEMA_LABELS.LABEL_SAMPLE_ID.name] = [
+            str(Path(p).name) for p in label_df[type(self).SCHEMA_LABELS.LABEL_PATH.name]
         ]
 
         # Update types
-        for col in type(self).LABEL_SCHEMA:
+        for col in type(self).SCHEMA_LABELS:
             label_df[col.name] = label_df[col.name].astype(col.type)
 
         log.info(f"Read ELPV sample labels from file: {str(lpath)}.")
@@ -121,7 +121,9 @@ class DataSetConfigELPV(ImageDatasetConfig):
         is changed.
         """
 
-        sample_dict: dict[ColName, list] = {colname: [] for colname in self.SAMPLE_SCHEMA.to_dict()}
+        sample_dict: dict[ColName, list] = {
+            colname: [] for colname in self.SCHEMA_SAMPLES.to_dict()
+        }
         log.info("Started reading sample files.")
         # Build dictionary with sample files and initial entries for the relevant columns.
         for sample_id, file in enumerate(
@@ -132,16 +134,16 @@ class DataSetConfigELPV(ImageDatasetConfig):
                 unit=f" {self.sample_type_desc}",
             )
         ):
-            sample_dict[self.SAMPLE_SCHEMA.SAMPLE.name].append(cv.imread(str(file.resolve())))
-            sample_dict[self.SAMPLE_SCHEMA.SAMPLE_PATH.name].append(str(file.resolve()))
-            sample_dict[self.SAMPLE_SCHEMA.LABEL_SAMPLE_ID.name].append(file.name)
+            sample_dict[self.SCHEMA_SAMPLES.SAMPLE.name].append(cv.imread(str(file.resolve())))
+            sample_dict[self.SCHEMA_SAMPLES.SAMPLE_PATH.name].append(str(file.resolve()))
+            sample_dict[self.SCHEMA_SAMPLES.LABEL_SAMPLE_ID.name].append(file.name)
 
             # Initialize data amplification metadata columns
             for colname in (
-                self.SAMPLE_SCHEMA.MIRROR_AXIS.name,
-                self.SAMPLE_SCHEMA.ROT_DEG.name,
-                self.SAMPLE_SCHEMA.TRANSL_X.name,
-                self.SAMPLE_SCHEMA.TRANSL_Y.name,
+                self.SCHEMA_SAMPLES.MIRROR_AXIS.name,
+                self.SCHEMA_SAMPLES.ROT_DEG.name,
+                self.SCHEMA_SAMPLES.TRANSL_X.name,
+                self.SCHEMA_SAMPLES.TRANSL_Y.name,
             ):
                 sample_dict[colname].append(0)
 
@@ -149,7 +151,7 @@ class DataSetConfigELPV(ImageDatasetConfig):
         df_samples: pd.DataFrame = pd.DataFrame.from_dict(sample_dict)
 
         # Update types
-        for entry in self.SAMPLE_SCHEMA.schema_entries:
+        for entry in self.SCHEMA_SAMPLES.schema_entries:
             df_samples[entry.name] = df_samples[entry.name].astype(entry.type)
 
         return df_samples
