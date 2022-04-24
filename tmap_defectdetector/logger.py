@@ -7,7 +7,7 @@ from logging.handlers import RotatingFileHandler
 
 from rich.logging import RichHandler
 
-from tmap_defectdetector.config.paths import FILE_LOG
+from tmap_defectdetector.pathconfig.paths import FILE_LOG
 
 
 LOG_LEVEL: str | int = (
