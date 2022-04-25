@@ -19,7 +19,7 @@ dependencies = [
     "seaborn~=0.11.2",
     "sklearn~=0.0",
     "pandas~=1.4.2",
-    "python-opencv~=4.5.5.66",
+    "opencv-python~=4.5.5.64",
     "tqdm~=4.64.0"
 ]
 classifiers = [
