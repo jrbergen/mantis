@@ -13,7 +13,7 @@ from pandas import DataFrame, Series
 import cv2 as cv
 from tqdm import tqdm
 
-from tmap_defectdetector.dataset.base.dataset_configs_base import DataSetConfig, ImageDatasetConfig
+from tmap_defectdetector.dataset.base.dataset_configs_base import DataSetConfig, ImageDataSetConfig
 from tmap_defectdetector.image.mirrors import (
     mirror_horizontal,
     mirror_vertical,
@@ -106,11 +106,9 @@ class DefectDetectionDataSet:
 class DefectDetectionDataSetImages(DefectDetectionDataSet):
 
     DEFAULT_DATASET_UNITS: ClassVar[str] = "sample images"
-    IDNUM_REX: re.Pattern = re.compile(
-        r"(?P<prefix>.*?)(?P<img_id>\d+)(?P<suffix>.*)"
-    )  # *(?P<extension>\.\D?)?$")
+    IDNUM_REX: re.Pattern = re.compile(r"(?P<prefix>.*?)(?P<img_id>\d+)(?P<suffix>.*)")
 
-    def __init__(self, dataset_cfg: ImageDatasetConfig):
+    def __init__(self, dataset_cfg: ImageDataSetConfig):
         """
         Construct a DefectDetectionDataSetImages (derived) object from
         a dataset configuration for image data (i.e. ImageDataSetConfig object).
@@ -122,12 +120,12 @@ class DefectDetectionDataSetImages(DefectDetectionDataSet):
         super().__init__(dataset_cfg=dataset_cfg)
 
     @property
-    def dataset_cfg(self) -> ImageDatasetConfig:
-        if not isinstance((cfg := super().dataset_cfg), ImageDatasetConfig):
+    def dataset_cfg(self) -> ImageDataSetConfig:
+        if not isinstance((cfg := super().dataset_cfg), ImageDataSetConfig):
             raise TypeError(
-                f"Expected dataset configuration of type {ImageDatasetConfig.__name__}, got {type(cfg)}."
+                f"Expected dataset configuration of type {ImageDataSetConfig.__name__}, got {type(cfg)}."
             )
-        return cast(ImageDatasetConfig, cfg)
+        return cast(ImageDataSetConfig, cfg)
 
     @property
     def images(self) -> Series:

@@ -159,7 +159,7 @@ class DataSetConfig(ABC):
         return f"""{type(self).__name__}({", ".join(f'{k}={v}' for k, v in vars(self).items())})"""
 
 
-class ImageDatasetConfig(DataSetConfig):
+class ImageDataSetConfig(DataSetConfig):
     SCHEMA_LABELS: ClassVar[SchemaLabels] = SchemaLabels()
     SCHEMA_SAMPLES: ClassVar[SchemaSamplesImageData] = SchemaSamplesImageData()
 
@@ -217,7 +217,7 @@ class ImageDatasetConfig(DataSetConfig):
     @classmethod
     def file_is_sample(cls, file: Path) -> bool:
         """Checks if potential sample file is an image assuming it has a (correct) extension."""
-        return file.is_file() and file.suffix.lower() in ImageDatasetConfig._RASTER_IMG_EXTENSIONS
+        return file.is_file() and file.suffix.lower() in ImageDataSetConfig._RASTER_IMG_EXTENSIONS
 
     def get_sample_paths(
         self,

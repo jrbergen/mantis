@@ -5,16 +5,16 @@ import os
 from pathlib import Path
 from typing import Iterable
 
-from tmap_defectdetector.dataset.base.downloaders_base import DatasetDownloaderGit
+from tmap_defectdetector.dataset.base.downloaders_base import DataSetDownloaderGit
 
 
-class DatasetDownloaderELPV(DatasetDownloaderGit):
+class DataSetDownloaderELPV(DataSetDownloaderGit):
     # Note that there is probably a far better more generalized approach than defining a class to
     # download/preprocess every dataset.
     # However, given that we probably don't have to use that many datasets and it would likely take to much
     # time to implement a generalizable way to do this right now, the choice was made to do it like this.
 
-    # Default repository name for this DatasetDownloader subclass
+    # Default repository name for this DataSetDownloader subclass
     DEFAULT_REPO_NAME: str = "dataset-elpv"
 
     # Description of the type of sample data used for e.g. progress bars,
@@ -35,7 +35,7 @@ class DatasetDownloaderELPV(DatasetDownloaderGit):
         :param repo_url: (optional) url pointing to the remote repository for the ELPV dataset
             (Defaults to "https://github.com/jrbergen/elpv-dataset").
         :param dataset_name: (optional str) name for this dataset
-            (defaults to DatasetDownloaderELPV.DEFAULT_REPO_NAME).
+            (defaults to DataSetDownloaderELPV.DEFAULT_REPO_NAME).
         :param relative_sample_dir_paths: (optional) iterable containing one or more paths
             to director[y|ies] containing the training data relative to the root repository directory.
             e.g. if the repository is called "dataset_repo" and the directories containing training images

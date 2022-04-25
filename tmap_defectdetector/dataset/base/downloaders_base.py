@@ -13,7 +13,7 @@ from tmap_defectdetector.logger import log
 from tmap_defectdetector.pathconfig.paths import DIR_DATASETS
 
 
-class AbstractDatasetDownloader(ABC):
+class AbstractDataSetDownloader(ABC):
     """
     Defect data could be downloaded in various ways (e.g. from disk, from web).
     This abstract baseclass defines the methods that a DatasetDownloader should have
@@ -26,7 +26,7 @@ class AbstractDatasetDownloader(ABC):
         pass
 
 
-class DatasetDownloaderGit(AbstractDatasetDownloader):
+class DataSetDownloaderGit(AbstractDataSetDownloader):
 
     # Default parent directory to download datasets to
     DEFAULT_DATASET_ROOTDIR: Path = DIR_DATASETS

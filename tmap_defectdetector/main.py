@@ -6,7 +6,7 @@ from pathlib import Path
 
 from tmap_defectdetector.compatibility_checks import version_check
 from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
-from tmap_defectdetector.dataset.downloaders import DatasetDownloaderELPV
+from tmap_defectdetector.dataset.downloaders import DataSetDownloaderELPV
 
 from tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV
 from tmap_defectdetector.dataset.schemas import SchemaLabelsELPV
@@ -32,7 +32,7 @@ def example_elpv(save_and_open_amplified_dataset: bool = True):
         Can take quite some time and space(default = False)
     """
     # Initialize the dataset downloader and download the ELPV dataset from its git repository.
-    downloader = DatasetDownloaderELPV()
+    downloader = DataSetDownloaderELPV()
     downloader.download()  # The dataset is downloaded to %LOCALAPPDATA%/.tmapdd/datasets/dataset-elpv/ (on Windows)
 
     # Initialize/load the ELPV dataset using the ELPV dataset configuration.
