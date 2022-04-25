@@ -41,12 +41,13 @@ def ensure_square_img(img: ndarray) -> None:
         raise ValueError("Empty image of shape 0x0 is not considered square.")
 
     if img.size > 1:
-        if len(img.shape) > 1 and img.shape[0] != img.shape[1]:
+        if len(img.shape) == 1:
+            raise ValueError(
+                "Operation is supported only for square images.\n" f"Got image of dimensions {img.shape[0]}x1."
+            )
+
+        if img.shape[0] != img.shape[1]:
             raise ValueError(
                 "Operation is supported only for square images.\n"
                 f"Got image of dimensions {img.shape[0]}x{img.shape[1]}."
-            )
-        else:
-            raise ValueError(
-                "Operation is supported only for square images.\n" f"Got image of dimensions {img.shape[0]}x1."
             )
