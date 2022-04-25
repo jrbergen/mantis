@@ -106,9 +106,7 @@ class DefectDetectionDataSet:
 class DefectDetectionDataSetImages(DefectDetectionDataSet):
 
     DEFAULT_DATASET_UNITS: ClassVar[str] = "sample images"
-    IDNUM_REX: re.Pattern = re.compile(
-        r"(?P<prefix>.*?)(?P<img_id>\d+)(?P<suffix>.*)"
-    )  # *(?P<extension>\.\D?)?$")
+    IDNUM_REX: re.Pattern = re.compile(r"(?P<prefix>.*?)(?P<img_id>\d+)(?P<suffix>.*)")
 
     def __init__(self, dataset_cfg: ImageDatasetConfig):
         """
