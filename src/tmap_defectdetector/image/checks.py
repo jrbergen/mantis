@@ -11,9 +11,7 @@ def ensure_img_is_array(img: ndarray) -> None:
     :raises TypeError: If img is not an instance of np.ndarray
     """
     if not isinstance(img, ndarray):
-        raise TypeError(
-            f"Image must be an instance of {ndarray.__qualname__}, got type {type(img)} instead."
-        )
+        raise TypeError(f"Image must be an instance of {ndarray.__qualname__}, got type {type(img)} instead.")
 
 
 def ensure_array_dimension(arr: ndarray, dim: int, errmsg: str = "") -> None:
@@ -36,10 +34,19 @@ def ensure_square_img(img: ndarray) -> None:
     """
     Checks if image dimensions are square.
 
-    :raises ValueError: if image dimensions are not equal (i.e. not a square image)
+    :raises ValueError: if image dimensions are not equal (i.e. not a square image).
+    :raises ValueError: if empty 'image' is passed.
     """
-    if img.shape[0] != img.shape[1]:
-        raise ValueError(
-            "Diagonal mirroring is supported only for square images.\n"
-            f"Got image of dimensions {img.shape[0]}x{img.shape[1]}."
-        )
+    if img.size == 0:
+        raise ValueError("Empty image of shape 0x0 is not considered square.")
+
+    if img.size > 1:
+        if len(img.shape) > 1:
+            raise ValueError(
+                "Operation is supported only for square images.\n"
+                f"Got image of dimensions {img.shape[0]}x{img.shape[1]}."
+            )
+        else:
+            raise ValueError(
+                "Operation is supported only for square images.\n" f"Got image of dimensions {img.shape[0]}x1."
+            )
