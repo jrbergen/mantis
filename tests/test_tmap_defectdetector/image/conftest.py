@@ -1,7 +1,7 @@
 """Initializes objects required for image-related tests"""
+
 import numpy as np
 from numpy import ndarray
-import pytest
 
 # Define test images of various shapes
 float_img_dtype = np.float64
@@ -32,96 +32,128 @@ iv: tuple[int, int, int, int, int, int, int, int, int] = (0, 32, 64, 96, 128, 16
 ai, bi, ci, di, ei, fi, gi, hi, ii = iv
 
 
-class MockImgsGreyscaleFloat:
-    # Greyscale float images (Y by X by 1)
-    IMG_331_f_grey = np.array(
-        [[[a], [b], [c]], [[d], [e], [f]], [[g], [h], [i]]],
-        dtype=float_img_dtype,
-    )
-    IMG_221_f_grey = np.array([[[a], [b]], [[c], [d]]], dtype=float_img_dtype)
-    IMG_321_f_grey = np.array([[[a], [b]], [[c], [d]], [[e], [f]]], dtype=float_img_dtype)
-    IMG_231_f_grey = np.array([[[a], [b], [c]], [[d], [e], [f]]], dtype=float_img_dtype)
-    IMG_311_f_grey = np.array([[[a]], [[b]], [[c]]], dtype=float_img_dtype)
-    IMG_131_f_grey = np.array([[[a], [b], [c]]], dtype=float_img_dtype)
+class ImgMock:
+    def __init__(self):
+        pass
 
-    assert_shape(IMG_331_f_grey, (3, 3, 1))
-    assert_shape(IMG_221_f_grey, (2, 2, 1))
-    assert_shape(IMG_321_f_grey, (3, 2, 1))
-    assert_shape(IMG_231_f_grey, (2, 3, 1))
-    assert_shape(IMG_311_f_grey, (3, 1, 1))
-    assert_shape(IMG_131_f_grey, (1, 3, 1))
+    class Square:
+        pass
+
+    class NonSquare:
+        pass
+
+    def imgs_square(self) -> list[ndarray]:
+        return [
+            getattr(self.Square, aname)
+            for aname in dir(self.Square)
+            if not aname.startswith("_") and aname.isupper()
+        ]
+
+    def imgs_nonsquare(self) -> list[ndarray]:
+        return [
+            getattr(self, aname)
+            for aname in dir(self)
+            if aname != "Square" and not aname.startswith("_") and aname.isupper()
+        ]
+
+
+class MockImgsGreyscaleFloat(ImgMock):
+    # Greyscale float images (Y by X by 1)
+    class Square:
+        IMG_331_F_GREY = np.array(
+            [[[a], [b], [c]], [[d], [e], [f]], [[g], [h], [i]]],
+            dtype=float_img_dtype,
+        )
+        IMG_221_F_GREY = np.array([[[a], [b]], [[c], [d]]], dtype=float_img_dtype)
+
+    IMG_321_F_GREY = np.array([[[a], [b]], [[c], [d]], [[e], [f]]], dtype=float_img_dtype)
+    IMG_231_F_GREY = np.array([[[a], [b], [c]], [[d], [e], [f]]], dtype=float_img_dtype)
+    IMG_311_F_GREY = np.array([[[a]], [[b]], [[c]]], dtype=float_img_dtype)
+    IMG_131_F_GREY = np.array([[[a], [b], [c]]], dtype=float_img_dtype)
+
+    assert_shape(Square.IMG_331_F_GREY, (3, 3, 1))
+    assert_shape(Square.IMG_221_F_GREY, (2, 2, 1))
+    assert_shape(IMG_321_F_GREY, (3, 2, 1))
+    assert_shape(IMG_231_F_GREY, (2, 3, 1))
+    assert_shape(IMG_311_F_GREY, (3, 1, 1))
+    assert_shape(IMG_131_F_GREY, (1, 3, 1))
 
     # Greyscale float images (Y by X)
-    IMG_330_f_grey = np.array([[a, b, c], [d, e, f], [g, h, i]], dtype=float_img_dtype)
-    IMG_220_f_grey = np.array([[a, b], [c, d]], dtype=float_img_dtype)
-    IMG_320_f_grey = np.array([[a, b], [c, d], [e, f]], dtype=float_img_dtype)
-    IMG_230_f_grey = np.array([[a, b, c], [d, e, f]], dtype=float_img_dtype)
-    IMG_130_f_grey = np.array([[a, b, c]], dtype=float_img_dtype)
-    IMG_310_f_grey = np.array([[a], [b], [c]], dtype=float_img_dtype)
+    IMG_330_F_GREY = np.array([[a, b, c], [d, e, f], [g, h, i]], dtype=float_img_dtype)
+    IMG_220_F_GREY = np.array([[a, b], [c, d]], dtype=float_img_dtype)
+    IMG_320_F_GREY = np.array([[a, b], [c, d], [e, f]], dtype=float_img_dtype)
+    IMG_230_F_GREY = np.array([[a, b, c], [d, e, f]], dtype=float_img_dtype)
+    IMG_130_F_GREY = np.array([[a, b, c]], dtype=float_img_dtype)
+    IMG_310_F_GREY = np.array([[a], [b], [c]], dtype=float_img_dtype)
 
-    assert_shape(IMG_220_f_grey, (2, 2))
-    assert_shape(IMG_320_f_grey, (3, 2))
-    assert_shape(IMG_230_f_grey, (2, 3))
-    assert_shape(IMG_130_f_grey, (1, 3))
-    assert_shape(IMG_310_f_grey, (3, 1))
+    assert_shape(IMG_220_F_GREY, (2, 2))
+    assert_shape(IMG_320_F_GREY, (3, 2))
+    assert_shape(IMG_230_F_GREY, (2, 3))
+    assert_shape(IMG_130_F_GREY, (1, 3))
+    assert_shape(IMG_310_F_GREY, (3, 1))
 
 
-class MockImgsGreyscaleInt:
+class MockImgsGreyscaleInt(ImgMock):
     # Greyscale int images (Y by X by 1)
-    IMG_331_i_grey = np.array(
-        [[[ai], [bi], [ci]], [[di], [ei], [fi]], [[gi], [hi], [ii]]],
-        dtype=int_img_dtype,
-    )
-    IMG_221_i_grey = np.array([[[ai], [bi]], [[ci], [di]]], dtype=int_img_dtype)
-    IMG_321_i_grey = np.array([[[ai], [bi]], [[ci], [di]], [[ei], [fi]]], dtype=int_img_dtype)
-    IMG_231_i_grey = np.array([[[ai], [bi], [ci]], [[di], [ei], [fi]]], dtype=int_img_dtype)
-    IMG_311_i_grey = np.array([[[ai]], [[bi]], [[ci]]], dtype=int_img_dtype)
-    IMG_131_i_grey = np.array([[[ai], [bi], [ci]]], dtype=int_img_dtype)
+    class Square:
+        IMG_331_I_GREY = np.array(
+            [[[ai], [bi], [ci]], [[di], [ei], [fi]], [[gi], [hi], [ii]]],
+            dtype=int_img_dtype,
+        )
+        IMG_221_I_GREY = np.array([[[ai], [bi]], [[ci], [di]]], dtype=int_img_dtype)
 
-    assert_shape(IMG_331_i_grey, (3, 3, 1))
-    assert_shape(IMG_221_i_grey, (2, 2, 1))
-    assert_shape(IMG_321_i_grey, (3, 2, 1))
-    assert_shape(IMG_231_i_grey, (2, 3, 1))
-    assert_shape(IMG_311_i_grey, (3, 1, 1))
-    assert_shape(IMG_131_i_grey, (1, 3, 1))
+    IMG_321_I_GREY = np.array([[[ai], [bi]], [[ci], [di]], [[ei], [fi]]], dtype=int_img_dtype)
+    IMG_231_I_GREY = np.array([[[ai], [bi], [ci]], [[di], [ei], [fi]]], dtype=int_img_dtype)
+    IMG_311_I_GREY = np.array([[[ai]], [[bi]], [[ci]]], dtype=int_img_dtype)
+    IMG_131_I_GREY = np.array([[[ai], [bi], [ci]]], dtype=int_img_dtype)
+
+    assert_shape(Square.IMG_331_I_GREY, (3, 3, 1))
+    assert_shape(Square.IMG_221_I_GREY, (2, 2, 1))
+    assert_shape(IMG_321_I_GREY, (3, 2, 1))
+    assert_shape(IMG_231_I_GREY, (2, 3, 1))
+    assert_shape(IMG_311_I_GREY, (3, 1, 1))
+    assert_shape(IMG_131_I_GREY, (1, 3, 1))
 
     # Greyscale int images (Y by X)
-    IMG_330_i_grey = np.array([[ai, bi, ci], [di, ei, fi], [gi, hi, ii]], dtype=int_img_dtype)
-    IMG_220_i_grey = np.array([[ai, bi], [ci, di]], dtype=int_img_dtype)
-    IMG_320_i_grey = np.array([[ai, bi], [ci, di], [ei, fi]], dtype=int_img_dtype)
-    IMG_230_i_grey = np.array([[ai, bi, ci], [di, ei, fi]], dtype=int_img_dtype)
-    IMG_130_i_grey = np.array([[ai, bi, ci]], dtype=int_img_dtype)
-    IMG_310_i_grey = np.array([[ai], [bi], [ci]], dtype=int_img_dtype)
+    IMG_330_I_GREY = np.array([[ai, bi, ci], [di, ei, fi], [gi, hi, ii]], dtype=int_img_dtype)
+    IMG_220_I_GREY = np.array([[ai, bi], [ci, di]], dtype=int_img_dtype)
+    IMG_320_I_GREY = np.array([[ai, bi], [ci, di], [ei, fi]], dtype=int_img_dtype)
+    IMG_230_I_GREY = np.array([[ai, bi, ci], [di, ei, fi]], dtype=int_img_dtype)
+    IMG_130_I_GREY = np.array([[ai, bi, ci]], dtype=int_img_dtype)
+    IMG_310_I_GREY = np.array([[ai], [bi], [ci]], dtype=int_img_dtype)
 
-    assert_shape(IMG_220_i_grey, (2, 2))
-    assert_shape(IMG_320_i_grey, (3, 2))
-    assert_shape(IMG_230_i_grey, (2, 3))
-    assert_shape(IMG_130_i_grey, (1, 3))
-    assert_shape(IMG_310_i_grey, (3, 1))
+    assert_shape(IMG_220_I_GREY, (2, 2))
+    assert_shape(IMG_320_I_GREY, (3, 2))
+    assert_shape(IMG_230_I_GREY, (2, 3))
+    assert_shape(IMG_130_I_GREY, (1, 3))
+    assert_shape(IMG_310_I_GREY, (3, 1))
 
 
-class MockImgsColorFloat:
+class MockImgsColorFloat(ImgMock):
     # Color float images (Y by X by 3)
-    IMG_333_f_color = np.array(
+    class Square:
+        IMG_333_F_COLOR = np.array(
+            [
+                [[c, a, a], [a, c, a], [a, a, c]],
+                [[f, a, a], [a, f, a], [a, a, f]],
+                [[i, a, a], [a, i, a], [a, a, i]],
+            ],
+            dtype=float_img_dtype,
+        )
+
+        IMG_223_F_COLOR = np.array(
+            [[[c, a, a], [a, c, a]], [[f, a, a], [a, f, a]]],
+            dtype=float_img_dtype,
+        )
+
+    IMG_233_F_COLOR = np.array(
         [
             [[c, a, a], [a, c, a], [a, a, c]],
             [[f, a, a], [a, f, a], [a, a, f]],
-            [[i, a, a], [a, i, a], [a, a, i]],
         ],
         dtype=float_img_dtype,
     )
-    IMG_223_f_color = np.array(
-        [[[c, a, a], [a, c, a]], [[f, a, a], [a, f, a]]],
-        dtype=float_img_dtype,
-    )
-    IMG_233_f_color = np.array(
-        [
-            [[c, a, a], [a, c, a], [a, a, c]],
-            [[f, a, a], [a, f, a], [a, a, f]],
-        ],
-        dtype=float_img_dtype,
-    )
-    IMG_323_f_color = np.array(
+    IMG_323_F_COLOR = np.array(
         [
             [[c, a, a], [a, c, a]],
             [[f, a, a], [a, f, a]],
@@ -129,39 +161,41 @@ class MockImgsColorFloat:
         ],
         dtype=float_img_dtype,
     )
-    IMG_133_f_color = np.array([[[c, a, a], [a, c, a], [a, a, c]]], dtype=float_img_dtype)
-    IMG_313_f_color = np.array([[[c, a, a]], [[f, a, a]], [[i, a, a]]], dtype=float_img_dtype)
+    IMG_133_F_COLOR = np.array([[[c, a, a], [a, c, a], [a, a, c]]], dtype=float_img_dtype)
+    IMG_313_F_COLOR = np.array([[[c, a, a]], [[f, a, a]], [[i, a, a]]], dtype=float_img_dtype)
 
-    assert_shape(IMG_333_f_color, (3, 3, 3))
-    assert_shape(IMG_223_f_color, (2, 2, 3))
-    assert_shape(IMG_323_f_color, (3, 2, 3))
-    assert_shape(IMG_233_f_color, (2, 3, 3))
-    assert_shape(IMG_313_f_color, (3, 1, 3))
-    assert_shape(IMG_133_f_color, (1, 3, 3))
+    assert_shape(Square.IMG_333_F_COLOR, (3, 3, 3))
+    assert_shape(Square.IMG_223_F_COLOR, (2, 2, 3))
+    assert_shape(IMG_323_F_COLOR, (3, 2, 3))
+    assert_shape(IMG_233_F_COLOR, (2, 3, 3))
+    assert_shape(IMG_313_F_COLOR, (3, 1, 3))
+    assert_shape(IMG_133_F_COLOR, (1, 3, 3))
 
 
-class MockImgsColorInt:
+class MockImgsColorInt(ImgMock):
     # Color int images (Y by X by 3)
-    IMG_333_i_color = np.array(
+    class Square:
+        IMG_333_I_COLOR = np.array(
+            [
+                [[ci, ai, ai], [ai, ci, ai], [ai, ai, ci]],
+                [[fi, ai, ai], [ai, fi, ai], [ai, ai, fi]],
+                [[ii, ai, ai], [ai, ii, ai], [ai, ai, ii]],
+            ],
+            dtype=float_img_dtype,
+        )
+        IMG_223_I_COLOR = np.array(
+            [[[ci, ai, ai], [ai, ci, ai]], [[fi, ai, ai], [ai, fi, ai]]],
+            dtype=float_img_dtype,
+        )
+
+    IMG_233_I_COLOR = np.array(
         [
             [[ci, ai, ai], [ai, ci, ai], [ai, ai, ci]],
             [[fi, ai, ai], [ai, fi, ai], [ai, ai, fi]],
-            [[ii, ai, ai], [ai, ii, ai], [ai, ai, ii]],
         ],
         dtype=float_img_dtype,
     )
-    IMG_223_i_color = np.array(
-        [[[ci, ai, ai], [ai, ci, ai]], [[fi, ai, ai], [ai, fi, ai]]],
-        dtype=float_img_dtype,
-    )
-    IMG_233_i_color = np.array(
-        [
-            [[ci, ai, ai], [ai, ci, ai], [ai, ai, ci]],
-            [[fi, ai, ai], [ai, fi, ai], [ai, ai, fi]],
-        ],
-        dtype=float_img_dtype,
-    )
-    IMG_323_i_color = np.array(
+    IMG_323_I_COLOR = np.array(
         [
             [[ci, ai, ai], [ai, ci, ai]],
             [[fi, ai, ai], [ai, fi, ai]],
@@ -169,32 +203,97 @@ class MockImgsColorInt:
         ],
         dtype=float_img_dtype,
     )
-    IMG_133_i_color = np.array([[[ci, ai, ai], [ai, ci, ai], [ai, ai, ci]]], dtype=float_img_dtype)
-    IMG_313_i_color = np.array([[[ci, ai, ai]], [[fi, ai, ai]], [[ii, ai, ai]]], dtype=float_img_dtype)
+    IMG_133_I_COLOR = np.array([[[ci, ai, ai], [ai, ci, ai], [ai, ai, ci]]], dtype=float_img_dtype)
+    IMG_313_I_COLOR = np.array([[[ci, ai, ai]], [[fi, ai, ai]], [[ii, ai, ai]]], dtype=float_img_dtype)
 
-    assert_shape(IMG_333_i_color, (3, 3, 3))
-    assert_shape(IMG_223_i_color, (2, 2, 3))
-    assert_shape(IMG_323_i_color, (3, 2, 3))
-    assert_shape(IMG_233_i_color, (2, 3, 3))
-    assert_shape(IMG_313_i_color, (3, 1, 3))
-    assert_shape(IMG_133_i_color, (1, 3, 3))
-
-
-@pytest.fixture(scope="session")
-def greyscale_imgs_float():
-    return MockImgsGreyscaleFloat
+    assert_shape(Square.IMG_333_I_COLOR, (3, 3, 3))
+    assert_shape(Square.IMG_223_I_COLOR, (2, 2, 3))
+    assert_shape(IMG_323_I_COLOR, (3, 2, 3))
+    assert_shape(IMG_233_I_COLOR, (2, 3, 3))
+    assert_shape(IMG_313_I_COLOR, (3, 1, 3))
+    assert_shape(IMG_133_I_COLOR, (1, 3, 3))
 
 
-@pytest.fixture(scope="session")
-def greyscale_imgs_8bit():
-    return MockImgsGreyscaleInt
+class MockImgsColorFloat(ImgMock):
+    # Color float images (Y by X by 3)
+    class Square:
+        IMG_333_F_COLOR = np.array(
+            [
+                [[c, a, a], [a, c, a], [a, a, c]],
+                [[f, a, a], [a, f, a], [a, a, f]],
+                [[i, a, a], [a, i, a], [a, a, i]],
+            ],
+            dtype=float_img_dtype,
+        )
+
+        IMG_223_F_COLOR = np.array(
+            [[[c, a, a], [a, c, a]], [[f, a, a], [a, f, a]]],
+            dtype=float_img_dtype,
+        )
+
+    IMG_233_F_COLOR = np.array(
+        [
+            [[c, a, a], [a, c, a], [a, a, c]],
+            [[f, a, a], [a, f, a], [a, a, f]],
+        ],
+        dtype=float_img_dtype,
+    )
+    IMG_323_F_COLOR = np.array(
+        [
+            [[c, a, a], [a, c, a]],
+            [[f, a, a], [a, f, a]],
+            [[i, a, a], [a, i, a]],
+        ],
+        dtype=float_img_dtype,
+    )
+    IMG_133_F_COLOR = np.array([[[c, a, a], [a, c, a], [a, a, c]]], dtype=float_img_dtype)
+    IMG_313_F_COLOR = np.array([[[c, a, a]], [[f, a, a]], [[i, a, a]]], dtype=float_img_dtype)
+
+    assert_shape(Square.IMG_333_F_COLOR, (3, 3, 3))
+    assert_shape(Square.IMG_223_F_COLOR, (2, 2, 3))
+    assert_shape(IMG_323_F_COLOR, (3, 2, 3))
+    assert_shape(IMG_233_F_COLOR, (2, 3, 3))
+    assert_shape(IMG_313_F_COLOR, (3, 1, 3))
+    assert_shape(IMG_133_F_COLOR, (1, 3, 3))
 
 
-@pytest.fixture(scope="session")
-def color_imgs_float():
-    return MockImgsColorFloat
+class MockImgsColorInt(ImgMock):
+    # Color int images (Y by X by 3)
+    class Square:
+        IMG_333_I_COLOR = np.array(
+            [
+                [[ci, ai, ai], [ai, ci, ai], [ai, ai, ci]],
+                [[fi, ai, ai], [ai, fi, ai], [ai, ai, fi]],
+                [[ii, ai, ai], [ai, ii, ai], [ai, ai, ii]],
+            ],
+            dtype=float_img_dtype,
+        )
+        IMG_223_I_COLOR = np.array(
+            [[[ci, ai, ai], [ai, ci, ai]], [[fi, ai, ai], [ai, fi, ai]]],
+            dtype=float_img_dtype,
+        )
 
+    IMG_233_I_COLOR = np.array(
+        [
+            [[ci, ai, ai], [ai, ci, ai], [ai, ai, ci]],
+            [[fi, ai, ai], [ai, fi, ai], [ai, ai, fi]],
+        ],
+        dtype=float_img_dtype,
+    )
+    IMG_323_I_COLOR = np.array(
+        [
+            [[ci, ai, ai], [ai, ci, ai]],
+            [[fi, ai, ai], [ai, fi, ai]],
+            [[ii, ai, ai], [ai, ii, ai]],
+        ],
+        dtype=float_img_dtype,
+    )
+    IMG_133_I_COLOR = np.array([[[ci, ai, ai], [ai, ci, ai], [ai, ai, ci]]], dtype=float_img_dtype)
+    IMG_313_I_COLOR = np.array([[[ci, ai, ai]], [[fi, ai, ai]], [[ii, ai, ai]]], dtype=float_img_dtype)
 
-@pytest.fixture(scope="session")
-def color_imgs_8bit():
-    return MockImgsColorInt
+    assert_shape(Square.IMG_333_I_COLOR, (3, 3, 3))
+    assert_shape(Square.IMG_223_I_COLOR, (2, 2, 3))
+    assert_shape(IMG_323_I_COLOR, (3, 2, 3))
+    assert_shape(IMG_233_I_COLOR, (2, 3, 3))
+    assert_shape(IMG_313_I_COLOR, (3, 1, 3))
+    assert_shape(IMG_133_I_COLOR, (1, 3, 3))
