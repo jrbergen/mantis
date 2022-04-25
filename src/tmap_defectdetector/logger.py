@@ -7,7 +7,7 @@ from logging.handlers import RotatingFileHandler
 
 from rich.logging import RichHandler
 
-from src.tmap_defectdetector.pathconfig.paths import FILE_LOG
+from tmap_defectdetector.pathconfig.paths import FILE_LOG
 
 
 LOG_LEVEL: str | int = "debug" if "-debug" in sys.argv[1:] or "--debug" in sys.argv[1:] else logging.INFO

@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 from numpy import ndarray
 
-from src.tmap_defectdetector.image.checks import ensure_img_is_array, ensure_array_dimension
+from tmap_defectdetector.image.checks import ensure_img_is_array, ensure_array_dimension
 
 _TRANS_FLOAT_COMP_TOL: float = 5e-1
 """Tolerance for comparing floats which specify image translations."""

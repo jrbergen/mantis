@@ -16,20 +16,20 @@ from pandas import DataFrame
 from tqdm import tqdm
 import cv2 as cv
 
-from src.tmap_defectdetector.dataset.base.dataset_configs_base import (
+from tmap_defectdetector.dataset.base.dataset_configs_base import (
     ImageDataSetConfig,
 )
-from src.tmap_defectdetector.dataset.base.schemas_base import (
+from tmap_defectdetector.dataset.base.schemas_base import (
     ColName,
 )
-from src.tmap_defectdetector.dataset.schemas import (
+from tmap_defectdetector.dataset.schemas import (
     SchemaLabelsELPV,
     SchemaSamplesELPV,
     SchemaFullELPV,
 )
 
-from src.tmap_defectdetector.logger import log
-from src.tmap_defectdetector.pathconfig.paths import DIR_DATASETS
+from tmap_defectdetector.logger import log
+from tmap_defectdetector.pathconfig.paths import DIR_DATASETS
 
 
 class DataSetConfigELPV(ImageDataSetConfig):

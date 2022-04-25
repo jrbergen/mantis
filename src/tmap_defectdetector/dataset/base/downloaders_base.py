@@ -9,8 +9,8 @@ from typing import Iterable, Callable
 from git import Repo, Remote
 from tqdm import tqdm
 
-from src.tmap_defectdetector.logger import log
-from src.tmap_defectdetector.pathconfig.paths import DIR_DATASETS
+from tmap_defectdetector.logger import log
+from tmap_defectdetector.pathconfig.paths import DIR_DATASETS
 
 
 class AbstractDataSetDownloader(ABC):

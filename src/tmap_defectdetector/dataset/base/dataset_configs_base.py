@@ -23,7 +23,7 @@ from typing import (
 from pandas import DataFrame
 import pandas as pd
 
-from src.tmap_defectdetector.dataset.base.schemas_base import (
+from tmap_defectdetector.dataset.base.schemas_base import (
     Schema,
     SchemaSamplesImageData,
     SchemaLabels,
@@ -31,7 +31,7 @@ from src.tmap_defectdetector.dataset.base.schemas_base import (
     SchemaSamples,
     SchemaFull,
 )
-from src.tmap_defectdetector.logger import log
+from tmap_defectdetector.logger import log
 
 
 class DataSetConfig(ABC):

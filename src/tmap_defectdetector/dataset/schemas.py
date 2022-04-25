@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from src.tmap_defectdetector.dataset.base.schemas_base import (
+from tmap_defectdetector.dataset.base.schemas_base import (
     SchemaLabels,
     SchemaEntry,
     SchemaSamplesImageData,
