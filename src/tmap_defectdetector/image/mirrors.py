@@ -37,4 +37,5 @@ def mirror_diag_bottomleft_topright(img: ndarray) -> ndarray:
     spanning from the bottom-left corner to the top-right corner.
     """
     ensure_img_is_array(img)
+    ensure_square_img(img)
     return np.rot90(np.flipud(img))
