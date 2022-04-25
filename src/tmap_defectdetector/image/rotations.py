@@ -5,6 +5,8 @@ import warnings
 import numpy as np
 from numpy import ndarray
 
+from tmap_defectdetector.image.checks import ensure_img_is_array
+
 
 def rotate_img(img: ndarray, degrees: int) -> ndarray:
     """
@@ -12,7 +14,9 @@ def rotate_img(img: ndarray, degrees: int) -> ndarray:
 
     :raises ValueError: if degrees is not a multiple of 90 or 0.
     :raises ValueError: if image is not square.
+    :raises TypeError: if something other than a numpy array is passed.
     """
+    ensure_img_is_array(img)
 
     if img.shape == (1,):
         warnings.warn(
@@ -47,15 +51,11 @@ def rotate_img_square(img: ndarray, degrees: int) -> ndarray:
 
     :raises ValueError: if degrees is not a multiple of 90 or 0.
     :raises ValueError: if image is not square.
+    :raises TypeError: if something other than a numpy array is passed.
     """
+    ensure_img_is_array(img)
 
     if img.size > 0 and (len(img.shape) <= 1 or img.shape[0] != img.shape[1]):
         raise ValueError(f"Expected square image/matrix; got shape {img.shape!r}.")
 
     return rotate_img(img=img, degrees=degrees)
-
-
-if __name__ == "__main__":
-    a = rotate_img_square(np.array([1, 2]), 90)
-
-    print(f"Temporary breakpoint in {__name__}")
