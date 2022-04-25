@@ -13,16 +13,16 @@ from pandas import DataFrame, Series
 import cv2 as cv
 from tqdm import tqdm
 
-from src.tmap_defectdetector.dataset.base.dataset_configs_base import DataSetConfig, ImageDataSetConfig
-from src.tmap_defectdetector.image.mirrors import (
+from tmap_defectdetector.dataset.base.dataset_configs_base import DataSetConfig, ImageDataSetConfig
+from tmap_defectdetector.image.mirrors import (
     mirror_horizontal,
     mirror_vertical,
     mirror_diag_bottomleft_topright,
     mirror_diag_topleft_bottomright,
 )
-from src.tmap_defectdetector.image.rotations import rotate_square
-from src.tmap_defectdetector.image.translations import translate_image
-from src.tmap_defectdetector.logger import log
+from tmap_defectdetector.image.rotations import rotate_img_square
+from tmap_defectdetector.image.translations import translate_image
+from tmap_defectdetector.logger import log
 
 
 class DefectDetectionDataSet:
@@ -336,7 +336,7 @@ class DefectDetectionDataSetImages(DefectDetectionDataSet):
                 log.info(f"Rotating dataset ({angle} degrees).")
                 pbar.postfix[1]["desc"] = angle
                 cur_df: DataFrame = non_rotated_entries.copy()
-                cur_df[img_col].apply(lambda img: rotate_square(img, angle))
+                cur_df[img_col].apply(lambda img: rotate_img_square(img, angle))
                 cur_df.loc[:, rot_col] = [angle] * len(cur_df)
 
                 # Update sample IDs
