@@ -4,8 +4,8 @@ from typing import TypeAlias, Union
 
 from numpy import ndarray
 
-from tmap_defectdetector.dataset.base.datasets_base import DefectDetectionDataSetImages
-from tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV
+from src.tmap_defectdetector.dataset.base.datasets_base import DefectDetectionDataSetImages
+from src.tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV
 
 
 ImageCollection: TypeAlias = list[ndarray] | tuple[ndarray, ...]

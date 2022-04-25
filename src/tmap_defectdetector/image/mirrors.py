@@ -6,7 +6,7 @@ import cv2 as cv
 import numpy as np
 from numpy import ndarray
 
-from tmap_defectdetector.image.checks import ensure_img_is_array, ensure_square_img
+from src.tmap_defectdetector.image.checks import ensure_img_is_array, ensure_square_img
 
 
 def mirror_horizontal(img: ndarray) -> ndarray:

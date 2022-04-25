@@ -7,12 +7,10 @@ from logging.handlers import RotatingFileHandler
 
 from rich.logging import RichHandler
 
-from tmap_defectdetector.pathconfig.paths import FILE_LOG
+from src.tmap_defectdetector.pathconfig.paths import FILE_LOG
 
 
-LOG_LEVEL: str | int = (
-    "debug" if "-debug" in sys.argv[1:] or "--debug" in sys.argv[1:] else logging.INFO
-)
+LOG_LEVEL: str | int = "debug" if "-debug" in sys.argv[1:] or "--debug" in sys.argv[1:] else logging.INFO
 
 LOG_WRITEMODE: str = "a"
 """'w' for overwriting the log each session, 'a' for appending."""
@@ -59,9 +57,7 @@ def _initialize_logger(log_name: str = __name__) -> logging.Logger:
     logger.addHandler(console_handler)
 
     # Handler for file-based log
-    file_format = (
-        f"{'[PID=%(process)d]' if LOG_SHOW_PROCESS_ID else ''}%(module)s.%(funcName)s: %(message)s"
-    )
+    file_format = f"{'[PID=%(process)d]' if LOG_SHOW_PROCESS_ID else ''}%(module)s.%(funcName)s: %(message)s"
     file_handler = RotatingFileHandler(
         FILE_LOG,
         mode=LOG_WRITEMODE,

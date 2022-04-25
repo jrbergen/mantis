@@ -9,8 +9,8 @@ from typing import Iterable, Callable
 from git import Repo, Remote
 from tqdm import tqdm
 
-from tmap_defectdetector.logger import log
-from tmap_defectdetector.pathconfig.paths import DIR_DATASETS
+from src.tmap_defectdetector.logger import log
+from src.tmap_defectdetector.pathconfig.paths import DIR_DATASETS
 
 
 class AbstractDataSetDownloader(ABC):
@@ -106,16 +106,12 @@ class DataSetDownloaderGit(AbstractDataSetDownloader):
             self._dataset_dir = new_dataset_dir
 
         # Initialize, fetch repository and checkout specified target branch.
-        repo, origin = self._initialize_repository(
-            repo_dir=self.dataset_dir, remote_name=remote_name
-        )
+        repo, origin = self._initialize_repository(repo_dir=self.dataset_dir, remote_name=remote_name)
 
         self._fetch(origin=origin)
         self._checkout_remote_branch(repository=repo, origin=origin)
 
-    def _initialize_repository(
-        self, repo_dir: str | os.PathLike, remote_name: str
-    ) -> tuple[Repo, Remote]:
+    def _initialize_repository(self, repo_dir: str | os.PathLike, remote_name: str) -> tuple[Repo, Remote]:
         """Used internally. Initializes repository in the specified directory for a given remote name."""
         repo = Repo.init(repo_dir)
         try:
@@ -153,10 +149,7 @@ class DataSetDownloaderGit(AbstractDataSetDownloader):
         Returns list of absolute filepaths which should point to this dataset's
         file(s) which contain the dataset labels.
         """
-        return [
-            Path(self.dataset_dir, relative_path)
-            for relative_path in self.relative_label_file_paths
-        ]
+        return [Path(self.dataset_dir, relative_path) for relative_path in self.relative_label_file_paths]
 
     @property
     def data_sample_dirs(self) -> list[Path]:
@@ -164,10 +157,7 @@ class DataSetDownloaderGit(AbstractDataSetDownloader):
         Returns list of absolute filepaths which should point to this dataset's
         directories containing sample files for training (e.g. sample images).
         """
-        return [
-            Path(self.dataset_dir, relative_path)
-            for relative_path in self.relative_sample_dir_paths
-        ]
+        return [Path(self.dataset_dir, relative_path) for relative_path in self.relative_sample_dir_paths]
 
     def get_data_files(
         self,

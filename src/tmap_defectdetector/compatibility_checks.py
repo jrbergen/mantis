@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 import warnings
 
-from tmap_defectdetector.logger import log
+from src.tmap_defectdetector.logger import log
 
 
 def version_check(min_py_version: tuple[int, ...] = (3, 10, 0)) -> None:

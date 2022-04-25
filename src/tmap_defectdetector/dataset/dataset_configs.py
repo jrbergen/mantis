@@ -16,20 +16,20 @@ from pandas import DataFrame
 from tqdm import tqdm
 import cv2 as cv
 
-from tmap_defectdetector.dataset.base.dataset_configs_base import (
+from src.tmap_defectdetector.dataset.base.dataset_configs_base import (
     ImageDataSetConfig,
 )
-from tmap_defectdetector.dataset.base.schemas_base import (
+from src.tmap_defectdetector.dataset.base.schemas_base import (
     ColName,
 )
-from tmap_defectdetector.dataset.schemas import (
+from src.tmap_defectdetector.dataset.schemas import (
     SchemaLabelsELPV,
     SchemaSamplesELPV,
     SchemaFullELPV,
 )
 
-from tmap_defectdetector.logger import log
-from tmap_defectdetector.pathconfig.paths import DIR_DATASETS
+from src.tmap_defectdetector.logger import log
+from src.tmap_defectdetector.pathconfig.paths import DIR_DATASETS
 
 
 class DataSetConfigELPV(ImageDataSetConfig):
@@ -40,8 +40,7 @@ class DataSetConfigELPV(ImageDataSetConfig):
 
     def __init__(
         self,
-        sample_dirs: os.PathLike
-        | Collection[os.PathLike] = (DIR_DATASETS / "dataset-elpv" / "images",),
+        sample_dirs: os.PathLike | Collection[os.PathLike] = (DIR_DATASETS / "dataset-elpv" / "images",),
         label_path: os.PathLike = Path(DIR_DATASETS / "dataset-elpv" / "labels.csv"),
         schema_samples: SchemaSamplesELPV = SCHEMA_SAMPLES,
         schema_labels: SchemaLabelsELPV = SCHEMA_LABELS,
@@ -120,9 +119,7 @@ class DataSetConfigELPV(ImageDataSetConfig):
         is changed.
         """
 
-        sample_dict: dict[ColName, list] = {
-            colname: [] for colname in self.SCHEMA_SAMPLES.to_dict()
-        }
+        sample_dict: dict[ColName, list] = {colname: [] for colname in self.SCHEMA_SAMPLES.to_dict()}
         log.info("Started reading sample files.")
         # Build dictionary with sample files and initial entries for the relevant columns.
         for sample_id, file in enumerate(

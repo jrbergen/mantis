@@ -4,16 +4,16 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from tmap_defectdetector.compatibility_checks import version_check
-from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
-from tmap_defectdetector.dataset.downloaders import DataSetDownloaderELPV
+from src.tmap_defectdetector.compatibility_checks import version_check
+from src.tmap_defectdetector.dataset.datasets import ImageDataSetELPV
+from src.tmap_defectdetector.dataset.downloaders import DataSetDownloaderELPV
 
-from tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV
-from tmap_defectdetector.dataset.schemas import SchemaLabelsELPV
+from src.tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV
+from src.tmap_defectdetector.dataset.schemas import SchemaLabelsELPV
 
-from tmap_defectdetector.logger import log
-from tmap_defectdetector.pathconfig.path_helpers import open_directory_with_filebrowser
-from tmap_defectdetector.pathconfig.paths import DIR_TMP
+from src.tmap_defectdetector.logger import log
+from src.tmap_defectdetector.pathconfig.path_helpers import open_directory_with_filebrowser
+from src.tmap_defectdetector.pathconfig.paths import DIR_TMP
 
 
 def cli():
