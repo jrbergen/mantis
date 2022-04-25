@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tmap-defect-detector"
-version = "2.0.0"
+version = "2.0.1"
 description = "ML-powered defect detector"
 dependencies = [
     "tensorflow~=2.8.0",
@@ -19,7 +19,7 @@ dependencies = [
     "seaborn~=0.11.2",
     "sklearn~=0.0",
     "pandas~=1.4.2",
-    "python-opencv~=4.5.5.66",
+    "opencv-python~=4.5.5.64",
     "tqdm~=4.64.0"
 ]
 classifiers = [
@@ -44,10 +44,18 @@ readme = {file = "README.md", content-type = "x-rst"}
 platforms = ["UNIX", "MacOS", "Windows"]
 
 [project.optional-dependencies]
-dev = ["pylint~=2.12.2", "black~=22.1.0", "mypy~=0.942"]
+dev = ["pylint~=2.12.2", "black~=22.1.0", "mypy~=0.942", "ipdb~=0.13.9"]
 test = ["pytest~=7.1.1", "numpy~=1.22.3"]
 
 [tool.black]
-line-length = 100
+line-length = 112
 include = '\.pyi?$'
+skip-magic-trailing-comma = false
 target-version = ['py310']
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = [
+    "tests"
+]
+pythonpath = "src"

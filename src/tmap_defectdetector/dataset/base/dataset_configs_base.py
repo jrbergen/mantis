@@ -23,7 +23,7 @@ from typing import (
 from pandas import DataFrame
 import pandas as pd
 
-from tmap_defectdetector.dataset.base.schemas_base import (
+from src.tmap_defectdetector.dataset.base.schemas_base import (
     Schema,
     SchemaSamplesImageData,
     SchemaLabels,
@@ -31,7 +31,7 @@ from tmap_defectdetector.dataset.base.schemas_base import (
     SchemaSamples,
     SchemaFull,
 )
-from tmap_defectdetector.logger import log
+from src.tmap_defectdetector.logger import log
 
 
 class DataSetConfig(ABC):
@@ -67,9 +67,7 @@ class DataSetConfig(ABC):
             of sample (default = "sample").
         """
         self.sample_dirs: list[Path] = (
-            list(Path(d) for d in sample_dirs)
-            if isinstance(sample_dirs, Iterable)
-            else [Path(sample_dirs)]
+            list(Path(d) for d in sample_dirs) if isinstance(sample_dirs, Iterable) else [Path(sample_dirs)]
         )
         self.label_path = Path(label_path)
 
@@ -124,9 +122,7 @@ class DataSetConfig(ABC):
         ColSchema object containing all column names and data types
         for the dataframe containing samples + labels.
         """
-        return self.schema_labels.combine_with_schema(
-            self.schema_samples, target_schema_type=SchemaFull
-        )
+        return self.schema_labels.combine_with_schema(self.schema_samples, target_schema_type=SchemaFull)
 
     @property
     def label_colnames(self) -> tuple[str, ...]:
@@ -241,9 +237,7 @@ class ImageDataSetConfig(DataSetConfig):
 
         for sample_dir in self.sample_dirs:
             sample_dir = Path(sample_dir)
-            sample_path_iterator = (
-                sample_dir.rglob(glob_pat) if recursive else sample_dir.glob(glob_pat)
-            )
+            sample_path_iterator = sample_dir.rglob(glob_pat) if recursive else sample_dir.glob(glob_pat)
 
             for potential_sample_file in sample_path_iterator:
                 if _filechecker_function(potential_sample_file):

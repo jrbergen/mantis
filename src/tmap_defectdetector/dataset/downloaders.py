@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Iterable
 
-from tmap_defectdetector.dataset.base.downloaders_base import DataSetDownloaderGit
+from src.tmap_defectdetector.dataset.base.downloaders_base import DataSetDownloaderGit
 
 
 class DataSetDownloaderELPV(DataSetDownloaderGit):

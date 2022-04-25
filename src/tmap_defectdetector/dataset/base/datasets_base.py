@@ -20,7 +20,7 @@ from tmap_defectdetector.image.mirrors import (
     mirror_diag_bottomleft_topright,
     mirror_diag_topleft_bottomright,
 )
-from tmap_defectdetector.image.rotations import rotate_square
+from tmap_defectdetector.image.rotations import rotate_img_square
 from tmap_defectdetector.image.translations import translate_image
 from tmap_defectdetector.logger import log
 
@@ -95,8 +95,7 @@ class DefectDetectionDataSet:
             self._data_filtered = self.data.query(query)
         except Exception as err:
             raise ValueError(
-                f"Invalid filter query string or other error occured"
-                f" during execution of query: {query!r}."
+                f"Invalid filter query string or other error occured" f" during execution of query: {query!r}."
             ) from err
 
     def __repr__(self) -> str:
@@ -260,9 +259,7 @@ class DefectDetectionDataSetImages(DefectDetectionDataSet):
             if not isinstance(translation, Collection):
                 raise ValueError("")
             if len(translation) != 2:
-                raise ValueError(
-                    f"Translations must be 2-tuples, got tuple of length ({str(translation)!r}."
-                )
+                raise ValueError(f"Translations must be 2-tuples, got tuple of length ({str(translation)!r}.")
         translations = tuple((tr[0], tr[1]) for tr in translations)
 
         trans_col_x: str = self.dataset_cfg.SCHEMA_SAMPLES.TRANSL_X.name
@@ -339,7 +336,7 @@ class DefectDetectionDataSetImages(DefectDetectionDataSet):
                 log.info(f"Rotating dataset ({angle} degrees).")
                 pbar.postfix[1]["desc"] = angle
                 cur_df: DataFrame = non_rotated_entries.copy()
-                cur_df[img_col].apply(lambda img: rotate_square(img, angle))
+                cur_df[img_col].apply(lambda img: rotate_img_square(img, angle))
                 cur_df.loc[:, rot_col] = [angle] * len(cur_df)
 
                 # Update sample IDs
@@ -400,17 +397,11 @@ class DefectDetectionDataSetImages(DefectDetectionDataSet):
                     case 2:
                         cur_df.loc[:, img_col] = cur_df[img_col].apply(mirror_vertical)
                     case 3:
-                        cur_df.loc[:, img_col] = cur_df[img_col].apply(
-                            mirror_diag_topleft_bottomright
-                        )
+                        cur_df.loc[:, img_col] = cur_df[img_col].apply(mirror_diag_topleft_bottomright)
                     case 4:
-                        cur_df.loc[:, img_col] = cur_df[img_col].apply(
-                            mirror_diag_bottomleft_topright
-                        )
+                        cur_df.loc[:, img_col] = cur_df[img_col].apply(mirror_diag_bottomleft_topright)
                     case _:
-                        raise ValueError(
-                            f"Mirror axes values are restricted to domain [1, 4], got {axis}."
-                        )
+                        raise ValueError(f"Mirror axes values are restricted to domain [1, 4], got {axis}.")
 
                 # Update sample IDs
                 cur_df = self._update_ids_for_dataset_addition(
@@ -424,9 +415,7 @@ class DefectDetectionDataSetImages(DefectDetectionDataSet):
         log.info(f"Mirroring of {type(self).__name__}'s samples completed.")
         log.info(f"Dataset now contains of {len(self.data)} samples.")
 
-    def save_images(
-        self, target_directory: Path, leave_free_space_bytes: int = 500_000_000
-    ) -> None:
+    def save_images(self, target_directory: Path, leave_free_space_bytes: int = 500_000_000) -> None:
         """
         Saves currently filtered/amplified set of images to disk.
 
@@ -453,10 +442,7 @@ class DefectDetectionDataSetImages(DefectDetectionDataSet):
             )
         ):
             savepath = Path(target_directory, row.LABEL_SAMPLE_ID)
-            if (
-                iirow % 500 == 0
-                and shutil.disk_usage(target_directory).free < leave_free_space_bytes
-            ):
+            if iirow % 500 == 0 and shutil.disk_usage(target_directory).free < leave_free_space_bytes:
                 # Don't check space every loop as it's a relatively expensive check.
                 raise IOError(
                     f"Minimum required remaining free space on target filesystem (disk/memory) exceeded: {leave_free_space_bytes/1024**2:.2f}MiB"

@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 from numpy import ndarray
 
-from tmap_defectdetector.image.checks import ensure_img_is_array, ensure_array_dimension
+from src.tmap_defectdetector.image.checks import ensure_img_is_array, ensure_array_dimension
 
 _TRANS_FLOAT_COMP_TOL: float = 5e-1
 """Tolerance for comparing floats which specify image translations."""
@@ -42,8 +42,7 @@ def translate_image(
         img,
         dim=3,
         errmsg=(
-            "Images expected to be 3-dimensional; "
-            "having a width, height, and intensity/color dimension."
+            "Images expected to be 3-dimensional; " "having a width, height, and intensity/color dimension."
         ),
     )
     no_change_vals = (0, -1.0, 1.0)
@@ -51,14 +50,10 @@ def translate_image(
         return img
 
     if translation_x:
-        translation_x = interpret_img_translation_value(
-            img=img, translation=translation_x, axis="x"
-        )
+        translation_x = interpret_img_translation_value(img=img, translation=translation_x, axis="x")
         img = np.roll(img, shift=translation_x, axis=0)
     if translation_y:
-        translation_y = interpret_img_translation_value(
-            img=img, translation=translation_y, axis="y"
-        )
+        translation_y = interpret_img_translation_value(img=img, translation=translation_y, axis="y")
         img = np.roll(img, shift=translation_y, axis=1)
     return img
 
@@ -95,8 +90,6 @@ def interpret_img_translation_value(img: ndarray, translation: float | int, axis
         elif axis == "y":
             translation %= img.shape[1]
     else:
-        raise TypeError(
-            f"Expected int or float for image translation value, got {type(translation)}."
-        )
+        raise TypeError(f"Expected int or float for image translation value, got {type(translation)}.")
 
     return int(translation)
