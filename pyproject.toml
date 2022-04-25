@@ -48,6 +48,7 @@ dev = ["pylint~=2.12.2", "black~=22.1.0", "mypy~=0.942"]
 test = ["pytest~=7.1.1", "numpy~=1.22.3"]
 
 [tool.black]
-line-length = 100
+line-length = 112
 include = '\.pyi?$'
+skip-magic-trailing-comma = false
 target-version = ['py310']
