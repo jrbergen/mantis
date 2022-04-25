@@ -17,11 +17,10 @@ from tqdm import tqdm
 import cv2 as cv
 
 from tmap_defectdetector.dataset.base.dataset_configs_base import (
-    ImageDatasetConfig,
+    ImageDataSetConfig,
 )
 from tmap_defectdetector.dataset.base.schemas_base import (
     ColName,
-    SchemaDefectData,
 )
 from tmap_defectdetector.dataset.schemas import (
     SchemaLabelsELPV,
@@ -33,7 +32,7 @@ from tmap_defectdetector.logger import log
 from tmap_defectdetector.pathconfig.paths import DIR_DATASETS
 
 
-class DataSetConfigELPV(ImageDatasetConfig):
+class DataSetConfigELPV(ImageDataSetConfig):
 
     SCHEMA_LABELS: ClassVar[SchemaLabelsELPV] = SchemaLabelsELPV()
     SCHEMA_SAMPLES: ClassVar[SchemaSamplesELPV] = SchemaSamplesELPV()
