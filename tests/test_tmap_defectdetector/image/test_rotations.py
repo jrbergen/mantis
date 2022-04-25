@@ -51,6 +51,19 @@ class TestRotateImg:
         np.testing.assert_equal(rotate_img(img, degrees), expected)
 
     @pytest.mark.parametrize(
+        "img, degrees",
+        (
+            (1, 90),
+            ([1, 2], 90),
+            ((1, 2), 90),
+            ("NotNdarray", 90),
+        ),
+    )
+    def test_rotate_img_wrongtype_no_ndarray_error(self, img, degrees):
+        with pytest.raises(TypeError):
+            rotate_img(img, degrees)
+
+    @pytest.mark.parametrize(
         "img, degrees, expected",
         (
             RotateTestParams(img=IMG11, degrees=90, expected=IMG11_ROT_90),
