@@ -18,7 +18,7 @@ def AssignXY(wdata):
     # Function to allocate for X and Y values
     # for linear regression
     wdata = wdata.rename(columns={'fixed acidity': 'fixed_acidity'})
-    X = wdata.alcohol
+    X = wdata.fixed_acidity
     Y = wdata.quality
     print (X)
     sn.scatterplot(X,Y)     # Plot and 

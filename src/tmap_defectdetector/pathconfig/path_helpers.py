@@ -1,9 +1,11 @@
-"""Contains helper functions for directory management/creation."""
+"""Contains helper functions for directory/path management/creation."""
 
 from __future__ import annotations
 
+import inspect
 import os
 import platform
+import subprocess
 
 from pathlib import Path
 
@@ -46,6 +48,34 @@ def get_appdir(dirname: str, make_if_non_exsiting: bool = True) -> Path:
             ) from e
 
     return dir_.resolve(strict=True)
+
+
+def open_directory_with_filebrowser(dir_to_open: Path) -> None:
+    """
+    Opens/runs filebrowser with default filebrowser application at the specified directory location.
+
+    :param dir_to_open: path to directory.
+
+    :raises ValueError: if passed a filepath, to prevent easily running malicious programs.
+    """
+    if not dir_to_open.is_dir():
+        raise ValueError(
+            f"Can only open a directory with this {inspect.currentframe().f_code.co_name}; "
+            f"provided a path: {str(dir_to_open)!r}."
+        )
+    match platform.system():
+        case "Linux":
+            subprocess.Popen(["xdg-open", str(Path)])
+        case "Windows":
+            os.startfile(dir_to_open)  # type: ignore
+        case "Darwin":
+            subprocess.Popen(["open", str(Path)])
+        case "Java":
+            raise NotImplementedError("Java platform not (yet?) supported.")
+        case _:
+            raise NotImplementedError(
+                f"Unrecognized/unsupported platform/OS: {platform.system()!r}."
+            )
 
 
 def get_datadir(pkg_name: str) -> Path:

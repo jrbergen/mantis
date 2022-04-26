@@ -16,9 +16,7 @@ def _read_readme(filename: str = "README.md") -> str:
     except PermissionError as err:
         raise PermissionError(f"No file permission to read readme file ({filename!r})...") from err
     except UnicodeEncodeError as err:
-        raise UnicodeError(
-            f"Unexpected encoding of readme file ({filename!r}); expected utf-8."
-        ) from err
+        raise UnicodeError(f"Unexpected encoding of readme file ({filename!r}); expected utf-8.") from err
 
 
 def pkg_setup():
@@ -39,7 +37,8 @@ def pkg_setup():
             "Programming Language :: Python",
             "Programming Language :: Python :: 3.10",
         ],
-        packages=find_packages(),
+        packages=find_packages("src"),
+        package_dir={"": "src"},
         python_requires=">=3.10",
         entry_points={"console_scripts": ["defectdetector = tmap_defectdetector.main:main"]},
     )
