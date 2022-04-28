@@ -135,3 +135,6 @@ dmypy.json
 
 # VSCode IDE configuration
 .vscode/
+
+# Jetbrains Pycharm
+.idea/
