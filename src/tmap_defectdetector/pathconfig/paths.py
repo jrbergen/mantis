@@ -23,3 +23,6 @@ FILE_LOG: Path = DIR_APP / f"log-{_PKG_NAME}.log"
 
 DIR_DATASETS: Path = DIR_APP / "datasets"
 """Directory for defect detection datasets and accompanying files/scripts."""
+
+TEXTUAL_LOGPATH: Path = DIR_APP / "textual.log"
+"""Separate log file for TUI (which uses textual)"""

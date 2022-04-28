@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from tmap_defectdetector.compatibility_checks import version_check
 from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
@@ -13,12 +14,28 @@ from tmap_defectdetector.dataset.schemas import SchemaLabelsELPV
 
 from tmap_defectdetector.logger import log
 from tmap_defectdetector.pathconfig.path_helpers import open_directory_with_filebrowser
-from tmap_defectdetector.pathconfig.paths import DIR_TMP
+from tmap_defectdetector.pathconfig.paths import DIR_TMP, TEXTUAL_LOGPATH
+from tmap_defectdetector.tui.home import DefectDetectorTUI
 
+AVAILABLE_DOWNLOADERS = (
+    'ELPV'
+)
 
 def cli():
     """CLI is not yet implemented."""
     ...
+
+def gui():
+    """GUI is not yet implemented."""
+    ...
+
+def tui():
+    """TUI is not yet implemented."""
+
+    DefectDetectorTUI.run(title="Defect Detector - TMAP April 2022", log=TEXTUAL_LOGPATH)
+    
+def get_dataset(dataset_name: str = 'elpv', url: Optional[str] = None):
+    """Retrieves a DataSet object containing data either from the web, or from the """
 
 
 def example_elpv(save_and_open_amplified_dataset: bool = True):
@@ -62,8 +79,9 @@ def example_elpv(save_and_open_amplified_dataset: bool = True):
 
 def main():
     version_check()
-    example_elpv()
-    log.info("All done!")
+    tui()
+    #example_elpv()
+    #log.info("All done!")
 
 
 if __name__ == "__main__":
