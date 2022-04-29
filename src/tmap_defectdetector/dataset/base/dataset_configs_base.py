@@ -44,6 +44,7 @@ class DataSetConfig(ABC):
 
     def __init__(
         self,
+        name: str,
         sample_dirs: os.PathLike | Collection[os.PathLike],
         schema_samples: SchemaSamples,
         label_path: os.PathLike,
@@ -53,6 +54,7 @@ class DataSetConfig(ABC):
         """
         Provides ways to load a training dataset's samples and labels into a DataFrame.
 
+        :param name: name/id used to identify this dataset (type).
         :param sample_dirs: One ore more path-like object(s)
             pointing to a directory with sample files.
         :param schema_samples: SchemaSamples (derived) object representing
@@ -66,6 +68,7 @@ class DataSetConfig(ABC):
         :param sample_type_desc: (optional) description for this kind
             of sample (default = "sample").
         """
+        self.name: str = name
         self.sample_dirs: list[Path] = (
             list(Path(d) for d in sample_dirs) if isinstance(sample_dirs, Iterable) else [Path(sample_dirs)]
         )
@@ -185,6 +188,7 @@ class ImageDataSetConfig(DataSetConfig):
 
     def __init__(
         self,
+        name: str,
         sample_dirs: os.PathLike | Collection[os.PathLike],
         label_path: os.PathLike,
         schema_samples: SchemaSamplesImageData = SCHEMA_SAMPLES,
@@ -203,6 +207,7 @@ class ImageDataSetConfig(DataSetConfig):
         :param sample_type_desc: (optional) description of this kind of sample (default = "sample").
         """
         super().__init__(
+            name=name,
             sample_dirs=sample_dirs,
             schema_samples=schema_samples,
             label_path=label_path,

@@ -40,6 +40,7 @@ class DataSetConfigELPV(ImageDataSetConfig):
 
     def __init__(
         self,
+        name: str = "ELPV Dataset",
         sample_dirs: os.PathLike | Collection[os.PathLike] = (DIR_DATASETS / "dataset-elpv" / "images",),
         label_path: os.PathLike = Path(DIR_DATASETS / "dataset-elpv" / "labels.csv"),
         schema_samples: SchemaSamplesELPV = SCHEMA_SAMPLES,
@@ -49,6 +50,7 @@ class DataSetConfigELPV(ImageDataSetConfig):
         """
         Provides configuration to load the ELPV dataset for training a defect detection model.
 
+        :param name: name/id used to identify this dataset (type).
         :param sample_dirs: One ore more path-like object(s) pointing to a directory with sample files.
         :param label_path: A path-like object pointing to corresponding label file.
         :param schema_samples: ColumnSpec (column specification) object declaring column names and types
@@ -58,6 +60,7 @@ class DataSetConfigELPV(ImageDataSetConfig):
         :param sample_type_desc: (optional) description of this kind of sample (default = "sample").
         """
         super().__init__(
+            name=name,
             sample_dirs=sample_dirs,
             schema_samples=schema_samples,
             label_path=label_path,
