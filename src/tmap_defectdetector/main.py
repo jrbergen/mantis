@@ -7,18 +7,16 @@ from pathlib import Path
 from typing import Optional
 
 from tmap_defectdetector.compatibility_checks import version_check
+from tmap_defectdetector.dataset.base.dataset_configs_base import DataSetConfig
 from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
 from tmap_defectdetector.dataset.downloaders import DataSetDownloaderELPV
 
-from tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV
+from tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV, DataSetConfigWineDetector
 from tmap_defectdetector.dataset.schemas import SchemaLabelsELPV
 
-from tmap_defectdetector.logger import log
-from tmap_defectdetector.pathconfig.path_helpers import open_directory_with_filebrowser
-from tmap_defectdetector.pathconfig.paths import DIR_TMP, TEXTUAL_LOGPATH
-from tmap_defectdetector.tui.home import DefectDetectorTUI, DefectDetectorTUIApp
-
-AVAILABLE_DOWNLOADERS = "ELPV"
+from tmap_defectdetector.path_helpers import open_directory_with_filebrowser
+from tmap_defectdetector import DIR_TMP, TEXTUAL_LOGPATH
+from tmap_defectdetector.tui.app import MantisTui
 
 
 def cli():
@@ -32,10 +30,16 @@ def gui():
 
 
 def tui():
-    """TUI is not yet implemented."""
+    """TUI entrypoint for Mantis Defect Detector."""
+    dataset_configs: list[DataSetConfig] = [
+        DataSetConfigELPV(),
+        DataSetConfigWineDetector(name="Wine Detector Dataset (Not yet implemented)"),
+    ]
 
-    app = DefectDetectorTUIApp(dataset_configs=[DataSetConfigELPV()])
-    app.run(title="Defect Detector - TMAP April 2022", log=TEXTUAL_LOGPATH)
+    app = MantisTui()
+    # a.run()
+    # app = DefectDetectorTUIApp(dataset_configs=[DataSetConfigELPV()])
+    app.run(title="Defect Detector - TMAP April 2022", log=TEXTUAL_LOGPATH, dataset_configs=dataset_configs)
 
 
 def get_dataset(dataset_name: str = "elpv", url: Optional[str] = None):
@@ -85,7 +89,9 @@ def example_elpv(save_and_open_amplified_dataset: bool = True):
 def main():
     os.environ["PYTHONASYNCIODEBUG"] = "1"
     version_check()
+
     tui()
+
     # example_elpv()
     # log.info("All done!")
 

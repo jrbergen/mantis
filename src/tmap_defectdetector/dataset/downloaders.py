@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Iterable
 
-from tmap_defectdetector.dataset.base.downloaders_base import DataSetDownloaderGit
+from tmap_defectdetector.dataset.base.downloaders_base import DataSetDownloaderGit, DataSetDownloader
 
 
 class DataSetDownloaderELPV(DataSetDownloaderGit):
@@ -60,3 +60,12 @@ class DataSetDownloaderELPV(DataSetDownloaderGit):
         # The image loading logic which was here before is now part of the ImageDataSetELPV class.
         # We may want to alter this class later (e.g. remove it entirely and find a better way to
         # make its DataSetDownloader parent class suited to donwloading the ELPV dataset specifically).
+
+
+class DataSetDownloaderWineDetector(DataSetDownloader):
+    def __init__(self, **downloader_kwargs):
+        raise NotImplemented(f"{type(self).__name__} not implemented...")
+
+    def download(self) -> None:
+        """This method should handle the download portion for the dataset."""
+        raise NotImplemented(f"{type(self).__name__}.download not implemented...")

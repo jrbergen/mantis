@@ -7,14 +7,15 @@ requires = [
 python_requires = '>=3.10.*'
 build-backend = "setuptools.build_meta"
 
+dynamic = ["version"]
 [project]
-name = "tmap-defect-detector"
+name = "tmapdd"
 version = "2.0.1"
 description = "ML-powered defect detector"
 dependencies = [
     "tensorflow~=2.8.0",
     "GitPython~=3.1.27",
-    "rich~=12.2.0",
+    "rich~=12.3.0",
     "numpy~=1.22.3",
     "seaborn~=0.11.2",
     "sklearn~=0.0",
@@ -44,6 +45,7 @@ readme = {file = "README.md", content-type = "x-rst"}
 [tool.setuptools]
 platforms = ["UNIX", "MacOS", "Windows"]
 
+
 [project.optional-dependencies]
 dev = ["pylint~=2.12.2", "black~=22.1.0", "mypy~=0.942", "ipdb~=0.13.9"]
 test = ["pytest~=7.1.1", "numpy~=1.22.3"]
@@ -60,3 +62,4 @@ testpaths = [
     "tests"
 ]
 pythonpath = "src"
+
