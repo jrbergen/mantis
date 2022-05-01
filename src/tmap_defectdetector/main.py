@@ -31,6 +31,7 @@ def gui():
 
 def tui():
     """TUI entrypoint for Mantis Defect Detector."""
+    version_check()
     dataset_configs: list[DataSetConfig] = [
         DataSetConfigELPV(),
         DataSetConfigWineDetector(name="Wine Detector Dataset (Not yet implemented)"),
@@ -81,7 +82,7 @@ def example_elpv(save_and_open_amplified_dataset: bool = True):
 def main():
     os.environ["PYTHONASYNCIODEBUG"] = "1"
     version_check()
-    tui()
+    example_elpv()
 
 
 if __name__ == "__main__":
