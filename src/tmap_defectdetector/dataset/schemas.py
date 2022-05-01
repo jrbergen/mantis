@@ -10,6 +10,7 @@ from tmap_defectdetector.dataset.base.schemas_base import (
     SchemaEntry,
     SchemaSamplesImageData,
     SchemaFullImageData,
+    SchemaSamples,
 )
 
 
@@ -47,5 +48,26 @@ class SchemaSamplesELPV(SchemaSamplesImageData):
 @dataclass(repr=False)
 class SchemaFullELPV(SchemaFullImageData, SchemaLabelsELPV, SchemaSamplesELPV):
     """Specifies schema for ELPV label _and_ sample data."""
+
+    pass
+
+
+@dataclass(repr=False)
+class SchemaLabelsWineDetector(SchemaLabels):
+    """Specifies schema for Wine Detector label data."""
+
+    pass
+
+
+@dataclass(repr=False)
+class SchemaSamplesWineDetector(SchemaSamples):
+    """Specifies schema for Wine Detector sample data."""
+
+    pass
+
+
+@dataclass(repr=False)
+class SchemaFullWineDetector(SchemaSamples):
+    """Specifies schema for Wine Detector label _and_ sample data"""
 
     pass

@@ -1,9 +1,12 @@
 """
-We still need a setupl.py file (instead of only pyproject.toml for everything)
- until PEP660 gets implemented in setuptools if we want editable installs:
- https://github.com/pypa/setuptools/issues/2816.
- https://peps.python.org/pep-0660/
+We still need a setup.py file (instead of only pyproject.toml for everything)
+until PEP660 gets implemented in setuptools if we want editable installs:
+https://github.com/pypa/setuptools/issues/2816.
+https://peps.python.org/pep-0660/
 """
+import re
+from pathlib import Path
+
 from setuptools import setup, find_packages
 
 
@@ -19,10 +22,25 @@ def _read_readme(filename: str = "README.md") -> str:
         raise UnicodeError(f"Unexpected encoding of readme file ({filename!r}); expected utf-8.") from err
 
 
+def read_version_from_toml() -> str:
+    """Hacky way to place version in 1 location with"""
+    version_rex = re.compile(r"""version = \"(\d+\.\d+\.\d+)""")
+    vpath: Path
+    if not (vpath := Path(Path(__file__).parent, "pyproject.toml")).exists():
+        raise FileNotFoundError("Couldn't find pyproject.toml file to read application version from...")
+    try:
+        return version_rex.search(vpath.read_text()).groups()[0]
+    except (AttributeError, IndexError, KeyError) as err:
+        raise NotImplementedError(
+            "Version doesn't seem to be specified in pyproject.toml. "
+            'Make sure to use the _exact_ syntax: version = "x.x.x" where x can be numbers)'
+        ) from err
+
+
 def pkg_setup():
     setup(
-        name="tmapdd",
-        version="0.0.1",
+        name="mantis",
+        version=read_version_from_toml(),
         author="Multiple authors",
         author_email="author@example.com",
         description="Defect detection package using Tensorflow",
@@ -40,7 +58,7 @@ def pkg_setup():
         packages=find_packages("src"),
         package_dir={"": "src"},
         python_requires=">=3.10",
-        entry_points={"console_scripts": ["defectdetector = tmap_defectdetector.main:main"]},
+        entry_points={"console_scripts": [f"mantis = tmap_defectdetector.main:main"]},
     )
 
 

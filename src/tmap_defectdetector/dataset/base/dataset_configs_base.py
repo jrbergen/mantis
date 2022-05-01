@@ -18,10 +18,13 @@ from typing import (
     ClassVar,
     Optional,
     Callable,
+    Type,
+    TYPE_CHECKING,
 )
 
 from pandas import DataFrame
 import pandas as pd
+
 
 from tmap_defectdetector.dataset.base.schemas_base import (
     Schema,
@@ -32,6 +35,14 @@ from tmap_defectdetector.dataset.base.schemas_base import (
     SchemaFull,
 )
 from tmap_defectdetector.logger import log
+
+if TYPE_CHECKING:
+    from tmap_defectdetector.dataset.base.downloaders_base import DataSetDownloader
+    from tmap_defectdetector.controllers.base import TUIControllerDataSet
+    from tmap_defectdetector.dataset.base.datasets_base import (
+        DefectDetectionDataSetImages,
+        DefectDetectionDataSet,
+    )
 
 
 class DataSetConfig(ABC):
@@ -44,15 +55,22 @@ class DataSetConfig(ABC):
 
     def __init__(
         self,
+        name: str,
+        dataset_cls: Optional[Type[DefectDetectionDataSet]],
         sample_dirs: os.PathLike | Collection[os.PathLike],
         schema_samples: SchemaSamples,
         label_path: os.PathLike,
         schema_labels: SchemaLabels,
         sample_type_desc: str = "sample",
+        controller_cls: Optional[Type[TUIControllerDataSet]] = None,
+        downloader: Optional[Type[DataSetDownloader]] = None,
+        default_filter_query_str: Optional[str] = None,
     ):
         """
         Provides ways to load a training dataset's samples and labels into a DataFrame.
 
+        :param name: name/id used to identify this dataset (type).
+        :param dataset_cls: class derived from DefectDetectionDataSet
         :param sample_dirs: One ore more path-like object(s)
             pointing to a directory with sample files.
         :param schema_samples: SchemaSamples (derived) object representing
@@ -65,7 +83,12 @@ class DataSetConfig(ABC):
             be created which will contain the samples.
         :param sample_type_desc: (optional) description for this kind
             of sample (default = "sample").
+        :param controller_cls: (optional) class which handles interactions with the TUI (Default = None).
+        :param downloader: (optional) class with a 'download' method to download
+            the required data (Default = None)
+        :param default_filter_query_str: (optional) Default query string to filter data with.
         """
+        self.name: str = name
         self.sample_dirs: list[Path] = (
             list(Path(d) for d in sample_dirs) if isinstance(sample_dirs, Iterable) else [Path(sample_dirs)]
         )
@@ -75,6 +98,17 @@ class DataSetConfig(ABC):
         self.schema_labels: Schema = schema_labels
 
         self.sample_type_desc: str = sample_type_desc
+        self.downloader_cls: Optional[Type[DataSetDownloader]] = downloader
+        self.downloader: Optional[DataSetDownloader] = None
+        self.dataset_cls: Type[DefectDetectionDataSet] = dataset_cls
+        self.controller_cls: Optional[Type[TUIControllerDataSet]] = controller_cls
+        self.default_filter_query_str: Optional[str] = default_filter_query_str
+
+    def init_downloader(self, **downloader_kwargs) -> None:
+        if self.downloader_cls is None:
+            log("Couldn't initialize unspecified downloader.")
+        else:
+            self.downloader = self.downloader_cls(**downloader_kwargs)
 
     @classmethod
     def file_is_sample(cls, file: Path) -> bool:
@@ -185,15 +219,22 @@ class ImageDataSetConfig(DataSetConfig):
 
     def __init__(
         self,
+        name: str,
+        dataset_cls: Optional[Type[DefectDetectionDataSetImages]],
         sample_dirs: os.PathLike | Collection[os.PathLike],
         label_path: os.PathLike,
         schema_samples: SchemaSamplesImageData = SCHEMA_SAMPLES,
         schema_labels: SchemaLabels = SCHEMA_LABELS,
         sample_type_desc: str = "solar panel sample image",
+        controller_cls: Optional[Type[TUIControllerDataSet]] = None,
+        downloader: Optional[Type[DataSetDownloader]] = None,
+        default_filter_query_str: Optional[str] = None,
     ):
         """
         Provides configuration to load an image dataset for training a defect detection model.
 
+        :param name: this dataset's name.
+        :param dataset_cls: class derived from DefectDetectionDataSetImages
         :param sample_dirs: One ore more path-like object(s) pointing to a directory with sample files.
         :param label_path: A path-like object pointing to corresponding label file.
         :param schema_samples: ColumnSpec (column specification) object declaring column names and types
@@ -201,13 +242,22 @@ class ImageDataSetConfig(DataSetConfig):
         :param schema_labels: ColumnSpec (column specification) object declaring column names and types
             for the labels in this dataset.
         :param sample_type_desc: (optional) description of this kind of sample (default = "sample").
+        :param controller_cls: (optional) class which handles interactions with the TUI (Default = None).
+        :param downloader: (optional) class with a 'download' method to download
+            the required data (Default = None)
+        :param default_filter_query_str: (optional) Default query string to filter data with.
         """
         super().__init__(
+            name=name,
+            dataset_cls=dataset_cls,
             sample_dirs=sample_dirs,
             schema_samples=schema_samples,
             label_path=label_path,
             schema_labels=schema_labels,
             sample_type_desc=sample_type_desc,
+            downloader=downloader,
+            controller_cls=controller_cls,
+            default_filter_query_str=default_filter_query_str,
         )
 
     @classmethod

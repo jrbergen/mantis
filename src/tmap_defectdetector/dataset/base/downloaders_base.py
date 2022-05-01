@@ -4,16 +4,17 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable, Callable
+from typing import Iterable, Callable, Awaitable
 
 from git import Repo, Remote
 from tqdm import tqdm
 
+from tmap_defectdetector.dataset.base.datasets_base import DefectDetectionDataSet
 from tmap_defectdetector.logger import log
-from tmap_defectdetector.pathconfig.paths import DIR_DATASETS
+from tmap_defectdetector import DIR_DATASETS
 
 
-class AbstractDataSetDownloader(ABC):
+class DataSetDownloader(ABC):
     """
     Defect data could be downloaded in various ways (e.g. from disk, from web).
     This abstract baseclass defines the methods that a DatasetDownloader should have
@@ -21,12 +22,16 @@ class AbstractDataSetDownloader(ABC):
     """
 
     @abstractmethod
+    def __init__(self, **downloader_kwargs):
+        ...
+
+    @abstractmethod
     def download(self) -> None:
         """This method should handle the download portion for the dataset."""
         pass
 
 
-class DataSetDownloaderGit(AbstractDataSetDownloader):
+class DataSetDownloaderGit(DataSetDownloader):
 
     # Default parent directory to download datasets to
     DEFAULT_DATASET_ROOTDIR: Path = DIR_DATASETS
@@ -41,6 +46,7 @@ class DataSetDownloaderGit(AbstractDataSetDownloader):
         dataset_name: str,
         relative_sample_dir_paths: Iterable[os.PathLike],
         relative_label_file_paths: Iterable[os.PathLike],
+        **downloader_kwargs,
     ):
         """
         Class for cloning a (remote) git repository (e.g. containing a defect detection dataset).
@@ -59,11 +65,16 @@ class DataSetDownloaderGit(AbstractDataSetDownloader):
             "dataset_repo/labels/labels_set1.csv", then you should pass ["labels/image_set1.csv"]
             to this argument.
         """
-        self._repo_url: str = repo_url
-        self._dataset_name: str = dataset_name
-        self.relative_label_file_paths = relative_label_file_paths
-        self.relative_sample_dir_paths = relative_sample_dir_paths
-        self._dataset_dir: Path = Path(self.DEFAULT_DATASET_ROOTDIR, dataset_name)
+
+        self._repo_url: str = downloader_kwargs.get("repo_url", repo_url)
+        self._dataset_name: str = downloader_kwargs.get("dataset_name", dataset_name)
+        self.relative_label_file_paths = downloader_kwargs.get(
+            "relative_label_file_paths", relative_label_file_paths
+        )
+        self.relative_sample_dir_paths = downloader_kwargs.get(
+            "relative_sample_dir_paths", relative_sample_dir_paths
+        )
+        self._dataset_dir: Path = Path(self.DEFAULT_DATASET_ROOTDIR, self._dataset_name)
 
     @property
     def dataset_dir(self) -> Path:
@@ -95,6 +106,16 @@ class DataSetDownloaderGit(AbstractDataSetDownloader):
         """
 
         # Change target root directory if it differs from the current.
+        self._dataset_dir = self._get_dirs_download(tgt_rootdir=tgt_rootdir)
+
+        # Initialize, fetch repository and checkout specified target branch.
+        repo, origin = self._initialize_repository(repo_dir=self.dataset_dir, remote_name=remote_name)
+
+        self._fetch(origin=origin)
+        self._checkout_remote_branch(repository=repo, origin=origin)
+
+    def _get_dirs_download(self, tgt_rootdir: Path = DIR_DATASETS) -> Path:
+        """Changes target root directory if it differs from the current."""
         if tgt_rootdir != self._dataset_dir.parent:
             new_dataset_dir = Path(tgt_rootdir, self.dataset_name)
 
@@ -103,13 +124,8 @@ class DataSetDownloaderGit(AbstractDataSetDownloader):
                 f"with name {self.dataset_name} "
                 f"from {str(self.dataset_dir.resolve())} to {str(new_dataset_dir.resolve())}."
             )
-            self._dataset_dir = new_dataset_dir
-
-        # Initialize, fetch repository and checkout specified target branch.
-        repo, origin = self._initialize_repository(repo_dir=self.dataset_dir, remote_name=remote_name)
-
-        self._fetch(origin=origin)
-        self._checkout_remote_branch(repository=repo, origin=origin)
+            return new_dataset_dir
+        return self._dataset_dir
 
     def _initialize_repository(self, repo_dir: str | os.PathLike, remote_name: str) -> tuple[Repo, Remote]:
         """Used internally. Initializes repository in the specified directory for a given remote name."""

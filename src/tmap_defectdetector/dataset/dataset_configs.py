@@ -6,9 +6,10 @@ and defining Schemas (see ELPV dataset below for example).
 from __future__ import annotations
 
 import os
+import warnings
 from functools import cached_property
 from pathlib import Path
-from typing import ClassVar, Collection
+from typing import ClassVar, Collection, Optional, Type, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -19,6 +20,7 @@ import cv2 as cv
 from tmap_defectdetector.dataset.base.dataset_configs_base import (
     ImageDataSetConfig,
 )
+from tmap_defectdetector.dataset.downloaders import DataSetDownloaderELPV
 from tmap_defectdetector.dataset.base.schemas_base import (
     ColName,
 )
@@ -26,10 +28,21 @@ from tmap_defectdetector.dataset.schemas import (
     SchemaLabelsELPV,
     SchemaSamplesELPV,
     SchemaFullELPV,
+    SchemaLabelsWineDetector,
+    SchemaSamplesWineDetector,
+    SchemaFullWineDetector,
 )
 
 from tmap_defectdetector.logger import log
-from tmap_defectdetector.pathconfig.paths import DIR_DATASETS
+from tmap_defectdetector import DIR_DATASETS
+from tmap_defectdetector.dataset.base.downloaders_base import DataSetDownloader
+
+if TYPE_CHECKING:
+    from tmap_defectdetector.dataset.base.datasets_base import (
+        DefectDetectionDataSetImages,
+        DefectDetectionDataSet,
+    )
+    from tmap_defectdetector.controllers.base import TUIControllerDataSet
 
 
 class DataSetConfigELPV(ImageDataSetConfig):
@@ -40,29 +53,56 @@ class DataSetConfigELPV(ImageDataSetConfig):
 
     def __init__(
         self,
+        name: str = "ELPV Dataset",
+        dataset_cls: Type[DefectDetectionDataSetImages] = None,
         sample_dirs: os.PathLike | Collection[os.PathLike] = (DIR_DATASETS / "dataset-elpv" / "images",),
         label_path: os.PathLike = Path(DIR_DATASETS / "dataset-elpv" / "labels.csv"),
         schema_samples: SchemaSamplesELPV = SCHEMA_SAMPLES,
         schema_labels: SchemaLabelsELPV = SCHEMA_LABELS,
         sample_type_desc: str = "solar panel sample image",
+        controller_cls: Optional[Type[TUIControllerDataSet]] = None,
+        downloader: Optional[Type[DataSetDownloader]] = DataSetDownloaderELPV,
+        default_filter_query_str: Optional[str] = f"{SchemaLabelsELPV().TYPE.name}=='poly'",
     ):
         """
         Provides configuration to load the ELPV dataset for training a defect detection model.
 
-        :param sample_dirs: One ore more path-like object(s) pointing to a directory with sample files.
-        :param label_path: A path-like object pointing to corresponding label file.
-        :param schema_samples: ColumnSpec (column specification) object declaring column names and types
-            for the samples in this dataset.
-        :param schema_labels: ColumnSpec (column specification) object declaring column names and types
-            for the labels in this dataset.
+        :param name: name/id used to identify this dataset (type).
+        :param dataset_cls: (optional) Dataset class to use (defaults to None -> ImageDataSetELPV).
+        :param sample_dirs: (optional) One ore more path-like object(s) pointing to a directory with sample files.
+            Defaults to DIR_DATASETS / "dataset-elpv" / "images".
+        :param label_path: (optional) A path-like object pointing to corresponding label file.
+            Defaults to DIR_DATASETS / "dataset-elpv" / "labels.csv"
+        :param schema_samples: (optional) SchemaSamples (column specification) object declaring column names and types
+            for the samples in this dataset. Defaults to cls.SCHEMA_SAMPLES.
+        :param schema_labels: (optional) SchemaLabels (column specification) object declaring column names and types
+            for the labels in this dataset. Defaults to cls.SCHEMA_LABELS.
         :param sample_type_desc: (optional) description of this kind of sample (default = "sample").
+        :param controller_cls: (optional) class which handles interactions with the TUI (Default = None -> TUIControllerELPV).
+        :param downloader: (optional) class with a 'download' method to download
+            the required data (Default = DataSetConfigELPV)
+        :param default_filter_query_str: (optional) Default query string to filter data with.
         """
+        if dataset_cls is None:
+            from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
+
+            dataset_cls = ImageDataSetELPV
+        if controller_cls is None:
+            from tmap_defectdetector.controllers.controller_elpv import TUIControllerELPV
+
+            controller_cls = TUIControllerELPV
+
         super().__init__(
+            name=name,
             sample_dirs=sample_dirs,
             schema_samples=schema_samples,
             label_path=label_path,
             schema_labels=schema_labels,
             sample_type_desc=sample_type_desc,
+            downloader=downloader,
+            dataset_cls=dataset_cls,
+            controller_cls=controller_cls,
+            default_filter_query_str=default_filter_query_str,
         )
 
     @cached_property
@@ -151,3 +191,80 @@ class DataSetConfigELPV(ImageDataSetConfig):
             df_samples[entry.name] = df_samples[entry.name].astype(entry.type)
 
         return df_samples
+
+
+class DataSetConfigWineDetector(ImageDataSetConfig):
+
+    SCHEMA_LABELS: ClassVar[SchemaLabelsWineDetector] = SchemaLabelsWineDetector()
+    SCHEMA_SAMPLES: ClassVar[SchemaSamplesWineDetector] = SchemaSamplesWineDetector()
+    SCHEMA_FULL: ClassVar[SchemaFullWineDetector] = SchemaFullWineDetector()
+
+    def __init__(
+        self,
+        name: str = "Wine Detector Dataset",
+        dataset_cls: Type[DefectDetectionDataSet] = None,
+        sample_dirs: os.PathLike | Collection[os.PathLike] = Path(DIR_DATASETS),
+        label_path: os.PathLike = Path("data", "winequality-red.csv"),
+        schema_samples: SchemaSamplesELPV = SCHEMA_SAMPLES,
+        schema_labels: SchemaLabelsELPV = SCHEMA_LABELS,
+        sample_type_desc: str = "wine quality data",
+        controller_cls: Optional[Type[TUIControllerDataSet]] = None,
+        downloader: Optional[Type[DataSetDownloader]] = DataSetDownloader,
+        default_filter_query_str: Optional[str] = None,
+    ):
+        """
+        Provides configuration to load the Wine Detector dataset for training a defect detection model.
+
+        :param name: name/id used to identify this dataset (type).
+        :param dataset_cls: (optional) Dataset class to use (defaults to None -> ImageDataSetELPV).
+        :param sample_dirs: (optional) One ore more path-like object(s) pointing to a directory with sample files.
+        :param label_path: (optional) A path-like object pointing to corresponding label file.
+        :param schema_samples: (optional) SchemaSamples (column specification) object declaring column names and types
+            for the samples in this dataset. Defaults to cls.SCHEMA_SAMPLES.
+        :param schema_labels: (optional) SchemaLabels (column specification) object declaring column names and types
+            for the labels in this dataset. Defaults to cls.SCHEMA_LABELS.
+        :param sample_type_desc: (optional) description of this kind of sample (default = "sample").
+        :param controller_cls: (optional) class which handles interactions with the TUI (Default = None).
+        :param downloader: (optional) class with a 'download' method to download
+            the required data (Default = DataSetDownloaderWineDetector)
+        :param default_filter_query_str: (optional) Default query string to filter data with (Default = None).
+        """
+
+        super().__init__(
+            name=name,
+            sample_dirs=sample_dirs,
+            schema_samples=schema_samples,
+            label_path=label_path,
+            schema_labels=schema_labels,
+            sample_type_desc=sample_type_desc,
+            downloader=downloader,
+            controller_cls=controller_cls,
+            dataset_cls=dataset_cls,
+            default_filter_query_str=default_filter_query_str,
+        )
+
+    @cached_property
+    def label_data(self) -> DataFrame:
+        """
+        Provides way to load labels for a specific dataset into DataFrame format.
+        This step is seperate from loading the samples as the datasets encountered
+        during this project commonly have labels and samples in different formats.
+        The loading result is cached in memory until an attribute of this configuration
+        is changed.
+        """
+        log.warn(f"{type(self).__name__} 'label_data' not implemented")
+        warnings.warn(f"{type(self).__name__} 'label_data' not implemented")
+        return pd.DataFrame()
+
+    @cached_property
+    def sample_data(self) -> DataFrame:
+        """
+        Provides way to load samples for a specific dataset into DataFrame format.
+        This step is seperate from loading the label data as the datasets encountered
+        during this project commonly have labels and samples in different formats.
+        The loading result is cached in memory until an attribute of this configuration
+        is changed.
+        """
+        log.warn(f"{type(self).__name__} 'sample_data' not implemented")
+        warnings.warn(f"{type(self).__name__} 'sample_data' not implemented")
+        return pd.DataFrame()
