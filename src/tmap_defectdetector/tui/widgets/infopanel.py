@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-from enum import Enum
 from pathlib import Path
 
 import rich
-from rich import box
-from rich.align import Align
 from rich.console import RenderableType
 from rich.panel import Panel
-from rich.pretty import Pretty
 from rich.table import Table
 from rich.text import Text
 from textual import events
@@ -29,7 +25,7 @@ class InfoPanel(Widget, can_focus=False):
     mouse_over: Reactive[bool] = Reactive(False)
     style: Reactive[str] = Reactive("")
     height: Reactive[int | None] = Reactive(None)
-    phase: Reactive[Text] = Reactive(Status.DATASET_SELECTION)
+    status: Reactive[Text] = Reactive(Status.DATASET_SELECTION)
     epoch: Reactive[int] = Reactive(0)
 
     n_input_files: Reactive[int] = Reactive(0)
@@ -43,8 +39,9 @@ class InfoPanel(Widget, can_focus=False):
         self.height = height
         self.epoch: int = 0
         self.n_input_files: int = 0
-        self.phase: Text = Status.DATASET_SELECTION.value
+        self.status: Text = Status.DATASET_SELECTION
         self.built_w_gpu_support: str = tf.test.is_built_with_gpu_support()
+        self.label_file: str = "<Undefined>"
 
     def __rich_repr__(self) -> rich.repr.Result:
         yield "name", self.name
@@ -56,7 +53,7 @@ class InfoPanel(Widget, can_focus=False):
 
         info.add_column(justify="left")
 
-        info.add_row(Text("Status: ", style="bold red") + self.phase)
+        info.add_row(Text("Status: ", style="bold red") + self.status)
         info.add_row(Text("\n", style="None"))
         info.add_row(f"[underline bright_blue]Training progress")
         info.add_row(f"[bright_green]  Epoch: [/] [bright_yellow]{self.epoch}")
@@ -82,10 +79,7 @@ class InfoPanel(Widget, can_focus=False):
         info.add_row(
             f"[bright_green]  Tensorflow GPU support:  [bright_yellow] {str(self.built_w_gpu_support)}"
         )
-        # info.add_row(f"[bright_green]  GPU Device: [bright_yellow] {tf.test.gpu_device_name()}")
         info.add_row(Text(style="None"))
-
-        # info.add_row(Text("Epoch: ", style="bold red")+Text(f"{self.epoch}", style="blink blue on white"))
 
         return Panel(info, title="[bright_blue]Info[/]")
 

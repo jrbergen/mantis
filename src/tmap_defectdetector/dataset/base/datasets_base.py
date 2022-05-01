@@ -43,7 +43,7 @@ class DefectDetectionDataSet:
         self._dataset_cfg: DataSetConfig = dataset_cfg
         log.info(f"Initialized {type(self).__name__!r} dataset.")
 
-    def amplify_data(self):
+    def amplify_data(self) -> None:
         """
         Performs operations which effectively increase the dataset size
         as to reduce overfitting problems / allow for a more generalizable

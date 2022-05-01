@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections import namedtuple
-from typing import Optional, Protocol, TYPE_CHECKING, NamedTuple, Callable, Awaitable, Type
+from typing import Protocol, TYPE_CHECKING, NamedTuple, Callable, Awaitable, Type
 
 from rich.console import RenderableType
 from textual import events, log
@@ -10,10 +9,6 @@ from textual._types import MessageTarget
 from tmap_defectdetector.dataset.base.dataset_configs_base import DataSetConfig
 from tmap_defectdetector.tui.events import ActivateSelected, StartRun, Disable, Enable
 from tmap_defectdetector.tui.widgets.button import StylableButton
-
-if TYPE_CHECKING:
-    from tmap_defectdetector.controllers.base import ActionController
-    from tmap_defectdetector.tui.widgets.menus import SelectionMenu
 
 
 class Selectable(Protocol):

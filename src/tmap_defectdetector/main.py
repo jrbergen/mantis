@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+
 
 from tmap_defectdetector.compatibility_checks import version_check
 from tmap_defectdetector.dataset.base.dataset_configs_base import DataSetConfig
@@ -35,16 +35,8 @@ def tui():
         DataSetConfigELPV(),
         DataSetConfigWineDetector(name="Wine Detector Dataset (Not yet implemented)"),
     ]
-
     app = MantisTui()
-    # a.run()
-    # app = DefectDetectorTUIApp(dataset_configs=[DataSetConfigELPV()])
     app.run(title="Defect Detector - TMAP April 2022", log=TEXTUAL_LOGPATH, dataset_configs=dataset_configs)
-
-
-def get_dataset(dataset_name: str = "elpv", url: Optional[str] = None):
-    """Retrieves a DataSet object containing data either from the web, or from the"""
-    ...
 
 
 def example_elpv(save_and_open_amplified_dataset: bool = True):
@@ -89,11 +81,7 @@ def example_elpv(save_and_open_amplified_dataset: bool = True):
 def main():
     os.environ["PYTHONASYNCIODEBUG"] = "1"
     version_check()
-
     tui()
-
-    # example_elpv()
-    # log.info("All done!")
 
 
 if __name__ == "__main__":

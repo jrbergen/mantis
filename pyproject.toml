@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools>=61.*.*",
+    "setuptools>=62.*.*",
     "wheel",
     "importlib-metadata>=4.*.*",
 ]
@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 dynamic = ["version"]
 [project]
 name = "tmapdd"
-version = "2.0.1"
+version = "2.0.3"
 description = "ML-powered defect detector"
 dependencies = [
     "tensorflow~=2.8.0",

@@ -64,6 +64,7 @@ class DataSetConfig(ABC):
         sample_type_desc: str = "sample",
         controller_cls: Optional[Type[TUIControllerDataSet]] = None,
         downloader: Optional[Type[DataSetDownloader]] = None,
+        default_filter_query_str: Optional[str] = None,
     ):
         """
         Provides ways to load a training dataset's samples and labels into a DataFrame.
@@ -85,6 +86,7 @@ class DataSetConfig(ABC):
         :param controller_cls: (optional) class which handles interactions with the TUI (Default = None).
         :param downloader: (optional) class with a 'download' method to download
             the required data (Default = None)
+        :param default_filter_query_str: (optional) Default query string to filter data with.
         """
         self.name: str = name
         self.sample_dirs: list[Path] = (
@@ -100,6 +102,7 @@ class DataSetConfig(ABC):
         self.downloader: Optional[DataSetDownloader] = None
         self.dataset_cls: Type[DefectDetectionDataSet] = dataset_cls
         self.controller_cls: Optional[Type[TUIControllerDataSet]] = controller_cls
+        self.default_filter_query_str: Optional[str] = default_filter_query_str
 
     def init_downloader(self, **downloader_kwargs) -> None:
         if self.downloader_cls is None:
@@ -225,6 +228,7 @@ class ImageDataSetConfig(DataSetConfig):
         sample_type_desc: str = "solar panel sample image",
         controller_cls: Optional[Type[TUIControllerDataSet]] = None,
         downloader: Optional[Type[DataSetDownloader]] = None,
+        default_filter_query_str: Optional[str] = None,
     ):
         """
         Provides configuration to load an image dataset for training a defect detection model.
@@ -241,7 +245,7 @@ class ImageDataSetConfig(DataSetConfig):
         :param controller_cls: (optional) class which handles interactions with the TUI (Default = None).
         :param downloader: (optional) class with a 'download' method to download
             the required data (Default = None)
-
+        :param default_filter_query_str: (optional) Default query string to filter data with.
         """
         super().__init__(
             name=name,
@@ -253,6 +257,7 @@ class ImageDataSetConfig(DataSetConfig):
             sample_type_desc=sample_type_desc,
             downloader=downloader,
             controller_cls=controller_cls,
+            default_filter_query_str=default_filter_query_str,
         )
 
     @classmethod

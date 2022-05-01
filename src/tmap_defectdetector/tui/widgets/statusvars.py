@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from enum import Enum
-
 from rich.text import Text
 
 _fg = "red"
@@ -16,7 +14,7 @@ LOGO = r"""
 """
 
 
-class Status(Enum):
+class Status:
     INITIALIZING: Text = Text(
         "Initializing",
         style="blink dodger_blue2",
@@ -27,6 +25,7 @@ class Status(Enum):
     )
     DATASET_LOADING: Text = Text("Downloading dataset", style="blink yellow2")
     DATASET_DOWNLOADING: Text = Text("Loading dataset", style="blink yellow2")
-    DATASET_AMPLIFICATION: Text = Text("Dataset amplificiation", style="blink yellow2")
-    TRAINING: Text = Text("Model training", style="blink yellow2")
+    DATASET_FILTERING: Text = Text("Filtering dataset", style="yellow2")
+    DATASET_AMPLIFICATION: Text = Text("Amplifying dataset", style="yellow2")
+    TRAINING: Text = Text("Training model...", style="blink cyan2")
     DONE: Text = Text("Done", style="bold green")

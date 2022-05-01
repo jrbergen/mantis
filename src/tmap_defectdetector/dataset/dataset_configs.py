@@ -62,6 +62,7 @@ class DataSetConfigELPV(ImageDataSetConfig):
         sample_type_desc: str = "solar panel sample image",
         controller_cls: Optional[Type[TUIControllerDataSet]] = None,
         downloader: Optional[Type[DataSetDownloader]] = DataSetDownloaderELPV,
+        default_filter_query_str: Optional[str] = f"{SchemaLabelsELPV().TYPE.name}=='poly'",
     ):
         """
         Provides configuration to load the ELPV dataset for training a defect detection model.
@@ -80,6 +81,7 @@ class DataSetConfigELPV(ImageDataSetConfig):
         :param controller_cls: (optional) class which handles interactions with the TUI (Default = None -> TUIControllerELPV).
         :param downloader: (optional) class with a 'download' method to download
             the required data (Default = DataSetConfigELPV)
+        :param default_filter_query_str: (optional) Default query string to filter data with.
         """
         if dataset_cls is None:
             from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
@@ -100,6 +102,7 @@ class DataSetConfigELPV(ImageDataSetConfig):
             downloader=downloader,
             dataset_cls=dataset_cls,
             controller_cls=controller_cls,
+            default_filter_query_str=default_filter_query_str,
         )
 
     @cached_property
@@ -207,6 +210,7 @@ class DataSetConfigWineDetector(ImageDataSetConfig):
         sample_type_desc: str = "wine quality data",
         controller_cls: Optional[Type[TUIControllerDataSet]] = None,
         downloader: Optional[Type[DataSetDownloader]] = DataSetDownloader,
+        default_filter_query_str: Optional[str] = None,
     ):
         """
         Provides configuration to load the Wine Detector dataset for training a defect detection model.
@@ -223,6 +227,7 @@ class DataSetConfigWineDetector(ImageDataSetConfig):
         :param controller_cls: (optional) class which handles interactions with the TUI (Default = None).
         :param downloader: (optional) class with a 'download' method to download
             the required data (Default = DataSetDownloaderWineDetector)
+        :param default_filter_query_str: (optional) Default query string to filter data with (Default = None).
         """
 
         super().__init__(
@@ -235,6 +240,7 @@ class DataSetConfigWineDetector(ImageDataSetConfig):
             downloader=downloader,
             controller_cls=controller_cls,
             dataset_cls=dataset_cls,
+            default_filter_query_str=default_filter_query_str,
         )
 
     @cached_property

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Union, Collection, Optional, Awaitable, Callable, Type, NamedTuple
+from typing import Union, Collection, Optional, Awaitable, Callable, NamedTuple
 
 from rich.console import RenderableType
 from rich.panel import Panel
@@ -9,7 +9,7 @@ from textual.reactive import Reactive
 from textual.widget import Widget
 
 from tmap_defectdetector.dataset.base.dataset_configs_base import DataSetConfig
-from tmap_defectdetector.tui.events import ActivateSelected, Enable, Disable
+from tmap_defectdetector.tui.events import ActivateSelected
 from tmap_defectdetector.tui.widgets.selection_item import MenuItem, DataSetSelectionItem
 
 ChoosableRenderableType = Union[RenderableType, MenuItem]
@@ -26,7 +26,6 @@ class SelectionMenu(Widget):
         self.options = []
         if options:
             self.add_options(options)
-
         super().__init__(name=name)
 
     def update_children_ownership(self):
@@ -41,12 +40,6 @@ class SelectionMenu(Widget):
     @property
     def menu(self) -> Panel:
         table = Table.grid(expand=True)
-        # if (
-        #     self.options
-        #     and not any(opt.selected for opt in self.options)
-        #     and any(not opt.enabled for opt in self.options)
-        # ):
-        #     self.options[0].selected = True
         for iiselec, selection in enumerate(self.options):
             table.add_row(selection)
         return Panel(table, title=self.name)
@@ -85,6 +78,11 @@ class SelectionMenu(Widget):
     def reset(self) -> None:
         self.idx = 0
 
+    def watch_enabled(self):
+        for option in self.options:
+            option.enable() if self.enabled else option.disable()
+        self.table.animate("layout_offset_x", 0 if self.enabled else -40)
+
     def previous(self) -> MenuItem:
         self.idx += 1
         new_option = self.options[self.idx]
@@ -121,7 +119,6 @@ class SelectionMenu(Widget):
             self._idx = value
 
     async def watch_enabled(self, enabled: bool):
-
         if enabled:
             for option in self.options:
                 self.log(f"Enabled: {self.name}")
