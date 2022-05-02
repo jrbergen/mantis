@@ -104,9 +104,10 @@ class CNNModelELPV(CNNModel):
         quality_col = cfg.SCHEMA_FULL.PROBABILITY.name
         type_col = cfg.SCHEMA_FULL.TYPE.name
         img_col = cfg.SCHEMA_FULL.SAMPLE.name
+        id_col = cfg.SCHEMA_FULL.LABEL_SAMPLE_ID.name
         data: DataFrame = dataset.data
         # del data[img_col]
-        labels: DataFrame = dataset.labels
+        # labels: DataFrame = dataset.labels
 
         if len(set(dataset.labels[type_col])) != 1:
             raise ValueError("Training dataset for multiple types; not yet supported.")
@@ -114,7 +115,7 @@ class CNNModelELPV(CNNModel):
         # classifications = {s: [] for s in set(f"class_{ii}_{labelvalue:.2f}" for labelvalue in enumerate())}
 
         img_train = data.sample(frac=0.65)
-        img_test = pd.concat([data, img_train]).drop_duplicates(keep=False)
+        img_test = pd.concat([data, img_train]).drop_duplicates(subset=[id_col], keep=False)
 
         assert (len(img_train) + len(img_test)) == len(data)
 
