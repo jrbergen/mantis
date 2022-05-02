@@ -105,7 +105,7 @@ class CNNModelELPV(CNNModel):
         type_col = cfg.SCHEMA_FULL.TYPE.name
         img_col = cfg.SCHEMA_FULL.SAMPLE.name
         data: DataFrame = dataset.data
-        del data[img_col]
+        # del data[img_col]
         labels: DataFrame = dataset.labels
 
         if len(set(dataset.labels[type_col])) != 1:
