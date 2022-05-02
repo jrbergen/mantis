@@ -1,330 +1,434 @@
 from __future__ import annotations
 
-# import numpy as np
-# import os
-# import six.moves.urllib as urllib
-# import sys
-# import tarfile
-# import tensorflow as tf
-# import zipfile
 
-# from collections import defaultdict
-# from io import StringIO
-# from matplotlib import pyplot as plt
-# from PIL import Image
-
-# sys.path.append("..")
-# from object_detection.utils import ops as utils_ops
-
-# from object_detection.utils import label_map_util
-# from object_detection.utils import visualization_utils as vis_util
-
-# MODEL_NAME = 'ssd_mobilenet_v1_coco_2017_11_17'
-# MODEL_FILE = MODEL_NAME + '.tar.gz'
-# DOWNLOAD_BASE = "http://download.tensorflow.org/models/object_detection/"
-
-# PATH_TO_CKPT = MODEL_NAME + '/frozen_inference_graph.pb'
-
-# PATH_TO_LABELS = os.path.join('mscoco_label_map.pbtxt')
-
-# NUM_CLASSES = 90
-
-# opener = urllib.request.URLopener()
-# opener.retrieve(DOWNLOAD_BASE + MODEL_FILE, MODEL_FILE)
-
-# tar_file = tarfile.open(MODEL_FILE)
-# for file in tar_file.getmembers():
-#     file_name = os.path.basename(file.name)
-#     if 'frozen_inference_graph.pb' in file_name:
-#         tar_file.extract(file, os.getcwd())
-
-# detection_graph = tf.Graph()
-# with detection_graph.as_default():
-#     od_graph_def = tf.compat.v1.GraphDef()
-#     with tf.compat.v1.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
-#         serialized_graph = fid.read()
-#         od_graph_def.ParseFromString(serialized_graph)
-#         tf.import_graph_def(od_graph_def, name='')
-
-# label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
-# categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
-# category_index = label_map_util.create_category_index(categories)
-
-# print("Reached end successfully!")
+import os
+import sys
+import time
 from abc import abstractmethod
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+from typing import TYPE_CHECKING, NamedTuple, Optional, ClassVar, Collection, Callable, TypeAlias
 
 import pandas as pd
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy import ndarray
 from pandas import DataFrame
+from tensorflow.python.framework.errors_impl import InternalError
 
+from tmap_defectdetector import DEFAULT_ELPV_MODELPATH
+from tmap_defectdetector.dataset.base.dataset_configs_base import ImageDataSetConfig
 from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
+from tmap_defectdetector.dataset.base.datasets_base import DefectDetectionDataSetImages
+from tmap_defectdetector.image.checks import ImageDimensionError
+from tmap_defectdetector.image.color import rgb_to_grayscale, grayscale_to_binary
 from tmap_defectdetector.logger import log
+from tmap_defectdetector.model import GPU_AVAILABLE, DEFAULT_GPU
+from tmap_defectdetector.model.plots import plot_image, plot_value_array
 
 if TYPE_CHECKING:
     from build.lib.tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV
 
 
 class DefectDetectionModel:
-    pass
-
     @classmethod
     @abstractmethod
     def from_dataset(cls, dataset: ImageDataSetELPV) -> CNNModel:
         return NotImplemented
 
 
+class SplitDataSet(NamedTuple):
+    train: DataFrame
+    test: DataFrame
+
+
+TensorFlowMetric: TypeAlias = Collection[str | Callable[[float, float], any] | tf.keras.metrics.Metric]
+TensorFlowLossFunction: TypeAlias = tf.keras.losses.Loss | str
+TensorFlowPredictions: TypeAlias = list[ndarray]
+
+
+class ValidImgType(Enum):
+    BINARY: str = "binary"
+    GRAYSCALE: str = "grayscale"
+    RGB: str = "rgb"
+
+
+@dataclass
+class CNNModelConfig:
+
+    n_epochs: int = 1024 if GPU_AVAILABLE else 64
+    training_frac: float = 0.65
+    n_nodes_layer2: int = 128
+    n_nodes_layer3: int = 10
+    activation_func_id: str = "relu"
+    optimizer: str = "adam"
+    metrics: TensorFlowMetric = ("accuracy",)
+    loss_function: TensorFlowLossFunction = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    _img_type: ValidImgType = ValidImgType.BINARY
+
+    @property
+    def img_type(self) -> ValidImgType:
+        return self._img_type
+
+    @img_type.setter
+    def img_type(self, img_type: ValidImgType):
+        if not isinstance(img_type, ValidImgType):
+            raise ValueError(
+                f"Invalid image type for parameter 'img_type'. Valid: {', '.join(x.name for x in ValidImgType)}"
+            )
+        self._img_type = img_type
+
+
 class CNNModel(DefectDetectionModel):
-    def __init__(self):
+
+    FLOAT_COMP_TOL: ClassVar[float] = 1e-8
+    """Float comparison error tolerance."""
+
+    def __init__(
+        self,
+        dataset: DefectDetectionDataSetImages,
+        training_frac: float = 0.65,
+        model_config: CNNModelConfig = CNNModelConfig(),
+    ):
+        """
+        Convolutional Neural Network model for image-based defect detection.
+
+        :param dataset: DefectDetectionDataSetImages (derived) instance containing
+            labeled samples for training.
+        :param training_frac: (optional) fraction of data to use
+            for training vs. test/validation data (Default = .65).
+        :param model_config: (optional) container storing configuration for the CNN Model
+            (Default = CNNModelConfig instance).
+        """
+        self.training_frac: float = training_frac
+
+        self.dataset: DefectDetectionDataSetImages = dataset
+
         self.training_data: DataFrame = pd.DataFrame()
         self.test_data: DataFrame = pd.DataFrame()
+
+        self.cfg: ImageDataSetConfig = self.dataset.dataset_cfg
+        self.id_col: str = self.cfg.SCHEMA_LABELS.LABEL_SAMPLE_ID.name
+        self.model_config: CNNModelConfig = model_config
+
+        self._grayscale: bool = False
+
+    @property
+    def data(self) -> pd.DataFrame:
+        """Returns the full dataset (samples + labels) as pandas DataFrame."""
+        return self.dataset.data
+
+    def init_training_and_test_sets(self):
+        self.training_data, self.test_data = self._get_training_and_test_sets()
+        if not (len(self.training_data) + len(self.test_data)) == len(self.data):
+            raise RuntimeError("Splitting of data into test/training sets resulted in information loss.")
+
+    def _get_training_and_test_sets(self, frac: Optional[float] = None) -> SplitDataSet:
+        """
+        Splits the dataset into training and test/validation parts according to specified fraction.
+
+        :param frac: fraction of data to use for training (Default = None -> self.training_frac attribute)
+        """
+        if frac is None:
+            frac = self.training_frac
+        log.info(f"Splitting dataset into training ({frac*100:.2f}%) and test ({(1-frac)*100:.2f}%) parts.")
+        return SplitDataSet(
+            train=(img_train := self.data.sample(frac=frac)),
+            test=pd.concat([self.data, img_train]).drop_duplicates(subset=[self.id_col], keep=False),
+        )
 
     @classmethod
     def from_dataset(cls, dataset: ImageDataSetELPV) -> CNNModel:
         raise NotImplementedError(f"{cls.__name__}'s factory method not yet implemented.")
 
+    def amplify_data(self, mirror_axes: tuple[int, int, int, int] = (1, 2, 3, 4)) -> None:
+        """Amplifies data for current selected dataset"""
+        self.dataset.amplify_data(mirror_axes=mirror_axes)
+
+    def filter(self, query: str) -> None:
+        self.dataset.filter(query=query)
+
+
+class DataByLabelsELPV(NamedTuple):
+    pass_: DataFrame
+    review: DataFrame
+    fail: DataFrame
+
+
+class ImageShape(NamedTuple):
+    rows: int
+    cols: int
+
+
+class ModelEvaluation(NamedTuple):
+    loss: float
+    accuracy: float
+    probability_model: tf.keras.Sequential
+    predictions: TensorFlowPredictions
+
 
 class CNNModelELPV(CNNModel):
-    def __init__(self):
+    def __init__(
+        self,
+        dataset: ImageDataSetELPV,
+        model_config: CNNModelConfig = CNNModelConfig(),
+        class_names: Collection[str] = ("Fail", "Review_A", "Review_B", "Pass"),
+    ):
         """
         This must be generalized later; we need a generalized implementation for all (image)
         datasets, but given the time constraint we just build a class specific for the ELPV dataset.
         """
-        super().__init__()
+        super().__init__(dataset=dataset, model_config=model_config)
+
+        self.cfg: DataSetConfigELPV = dataset.dataset_cfg
+        self.quality_col = self.cfg.SCHEMA_FULL.PROBABILITY.name
+        self.type_col = self.cfg.SCHEMA_FULL.TYPE.name
+        self.img_col = self.cfg.SCHEMA_FULL.SAMPLE.name
+        self.class_names: Collection[str] = class_names
+
+        self._model: Optional[tf.keras.models.Model] = None
+        self._compiled: bool = False
+        self._fitted: bool = False
+        self._binary_colors: bool = False
+        self._grayscale: bool = False
+
+    def images_to_grayscale_nonreversible(self):
+        """Non-reversibly converts images in the current dataset to grayscale."""
+        if self._binary_colors:
+            raise ValueError("Cannot convert to grayscale: already converted to binary colors.")
+        if not self._grayscale:
+            log.info("Converting images to grayscale...")
+            if self.dataset.data.loc[:, self.img_col].iloc[0].shape[-1] == 3:
+                self.dataset.data.loc[:, self.img_col] = self.dataset.data.loc[:, self.img_col].apply(
+                    rgb_to_grayscale
+                )
+                log.info("Succesfully converted image dataset to grayscale.")
+                self._grayscale = True
+            log.info("Conversion to grayscale ignored; image doesn't have expected (rgb) input shape.")
+
+    def images_to_binary(self):
+        """Non-reversibly converts images in the current dataset to binary images."""
+        if not self._grayscale:
+            self.images_to_grayscale_nonreversible()
+
+        log.info("Converting images to binary colors...")
+        self.dataset.data.loc[:, self.img_col] = self.dataset.data.loc[:, self.img_col].apply(
+            grayscale_to_binary
+        )
+        log.info("Succesfully converted image dataset to binary colors.")
+        self._binary_colors = True
+        log.info("Conversion to grayscale ignored; image doesn't have expected (rgb) input shape.")
+
+    def unsqueeze_images(self) -> None:
+        log.info("'Un'-squeezing images: NxM -> NxMx1")
+        self.dataset.data.loc[:, self.img_col] = self.dataset.data.loc[:, self.img_col].apply(
+            self._unsqueeze_img
+        )
+
+    @staticmethod
+    def delete_saved_model():
+        if DEFAULT_ELPV_MODELPATH.exists() and DEFAULT_ELPV_MODELPATH.is_file():
+            os.remove(DEFAULT_ELPV_MODELPATH)
+
+    def squeeze_images(self) -> None:
+        log.info("Squeezing images: NxMx1 -> NxM")
+        self.dataset.data.loc[:, self.img_col] = self.dataset.data.loc[:, self.img_col].apply(np.squeeze)
+
+    @staticmethod
+    def _unsqueeze_img(img: ndarray) -> ndarray:
+        return img.reshape(*img.shape[:2], 1)
 
     @classmethod
-    def from_dataset(cls, dataset: ImageDataSetELPV, tolerance: float = 1e-8) -> CNNModelELPV:
-        pass
+    def from_dataset(cls, dataset: ImageDataSetELPV, tolerance: Optional[float] = None) -> CNNModelELPV:
+        tolerance = cls.FLOAT_COMP_TOL if tolerance is None else tolerance
+        raise NotImplementedError()
 
-    def full_run_from_dataset(self, dataset: ImageDataSetELPV, tolerance: float = 1e-8):
-        cfg: DataSetConfigELPV = dataset.dataset_cfg
-
-        quality_col = cfg.SCHEMA_FULL.PROBABILITY.name
-        type_col = cfg.SCHEMA_FULL.TYPE.name
-        img_col = cfg.SCHEMA_FULL.SAMPLE.name
-        id_col = cfg.SCHEMA_FULL.LABEL_SAMPLE_ID.name
-        data: DataFrame = dataset.data
-        # del data[img_col]
-        # labels: DataFrame = dataset.labels
-
-        if len(set(dataset.labels[type_col])) != 1:
-            raise ValueError("Training dataset for multiple types; not yet supported.")
-
-        # classifications = {s: [] for s in set(f"class_{ii}_{labelvalue:.2f}" for labelvalue in enumerate())}
-
-        img_train = data.sample(frac=0.65)
-        img_test = pd.concat([data, img_train]).drop_duplicates(subset=[id_col], keep=False)
-
-        assert (len(img_train) + len(img_test)) == len(data)
-
-        imgs_pass_train = (
-            img_train[np.isclose(img_train[quality_col], 1.0, atol=tolerance)].loc[:, img_col].to_list()
-        )
-        imgs_review_train = img_train[img_train[quality_col].gt(0.01)].loc[:, img_col].to_list()
-        imgs_fail_train = (
-            img_train[np.isclose(img_train[quality_col], 0.0, atol=tolerance)].loc[:, img_col].to_list()
+    def get_train_data_by_label(self, tolerance: Optional[float] = None) -> DataByLabelsELPV:
+        tolerance = self.FLOAT_COMP_TOL if tolerance is None else tolerance
+        self._ensure_train_imgdata()
+        return DataByLabelsELPV(
+            pass_=self.data[np.isclose(self.data[self.quality_col], 1.0, atol=tolerance)]
+            .loc[:, self.img_col]
+            .to_numpy(),
+            review=self.data[self.data[self.quality_col].gt(0.01)].loc[:, self.img_col].to_numpy(),
+            fail=self.data[np.isclose(self.data[self.quality_col], 0.0, atol=tolerance)]
+            .loc[:, self.img_col]
+            .to_numpy(),
         )
 
-        labels_pass_train = (
-            img_train[np.isclose(img_train[quality_col], 1.0, atol=tolerance)].loc[:, quality_col].to_list()
-        )
-        labels_review_train = img_train[img_train[quality_col].gt(0.01)].loc[:, quality_col].to_list()
-        labels_fail_train = (
-            img_train[np.isclose(img_train[quality_col], 0.0, atol=tolerance)].loc[:, quality_col].to_list()
-        )
-
-        train_images = img_train.loc[:, img_col].to_list()
-        train_labels = img_train.loc[:, quality_col].to_list()
-
-        # imgs_pass_test = (
-        #     img_test[np.isclose(img_test[quality_col], 1.0, atol=tolerance)].loc[:, img_col].to_list()
-        # )
-        # imgs_review_test = img_test[img_test[quality_col].gt(0.01)].loc[:, img_col].to_list()
-        # imgs_fail_test = (
-        #     img_test[np.isclose(img_test[quality_col], 0.0, atol=tolerance)].loc[:, img_col].to_list()
-        # )
-        #
-        # labels_pass_test = (
-        #     img_test[np.isclose(img_test[quality_col], 1.0, atol=tolerance)].loc[:, quality_col].to_list()
-        # )
-        # labels_review_test = img_test[img_test[quality_col].gt(0.01)].loc[:, quality_col].to_list()
-        # labels_fail_test = (
-        #     img_test[np.isclose(img_test[quality_col], 0.0, atol=tolerance)].loc[:, quality_col].to_list()
-        # )
-        #
-        test_images = img_test.loc[:, img_col].to_list()
-        test_labels = img_test.loc[:, quality_col].to_list()
-
-        imgshape = imgs_fail_train[0].shape
-
-        class_names = ["Fail", "Review_A", "Review_B", "Pass"]
-
-        model = tf.keras.Sequential(
-            [
-                tf.keras.layers.Flatten(input_shape=imgshape),
-                tf.keras.layers.Dense(128, activation="relu"),
-                tf.keras.layers.Dense(10),
-            ]
+    def get_test_data_by_label(self, tolerance: float = None) -> DataByLabelsELPV:
+        tolerance = self.FLOAT_COMP_TOL if tolerance is None else tolerance
+        self._ensure_train_imgdata()
+        return DataByLabelsELPV(
+            pass_=self.data[np.isclose(self.data[self.quality_col], 1.0, atol=tolerance)]
+            .loc[:, self.quality_col]
+            .to_numpy(),
+            review=self.data[self.data[self.quality_col].gt(0.01)].loc[:, self.quality_col].to_numpy(),
+            fail=self.data[np.isclose(self.data[self.quality_col], 0.0, atol=tolerance)]
+            .loc[:, self.quality_col]
+            .to_numpy(),
         )
 
-        model.compile(
-            optimizer="adam",
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-            metrics=["accuracy"],
-        )
+    @property
+    def train_images(self) -> ndarray:
+        self._ensure_train_imgdata()
+        return np.stack(self.training_data.loc[:, self.img_col].to_numpy())
 
-        model.fit(train_images, train_labels, epochs=10)
+    @property
+    def train_labels(self) -> ndarray:
+        self._ensure_train_imgdata()
+        return self.training_data.loc[:, self.quality_col].to_numpy()
 
-        test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
-        log("\nTest accuracy:", test_acc)
+    @property
+    def test_images(self) -> ndarray:
+        self._ensure_train_imgdata()
+        return np.stack(self.training_data.loc[:, self.img_col].to_numpy())
 
-        probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
-        predictions = probability_model.predict(test_images)
-        log(predictions[0])
-        log(np.argmax(predictions[0]))
-        log(test_labels[0])
+    @property
+    def test_labels(self) -> ndarray:
+        self._ensure_train_imgdata()
+        return self.training_data.loc[:, self.quality_col].to_numpy()
 
-        def plot_image(i, predictions_array, true_label, img):
-            true_label, img = true_label[i], img[i]
-            plt.grid(False)
-            plt.xticks([])
-            plt.yticks([])
+    @property
+    def image_shape(self) -> ImageShape:
+        shapes = list(set(image.shape for image in self.data.loc[:, self.img_col]))
+        if len(shapes) > 1:
+            self.squeeze_images()
+        shapes = list(set(image.shape for image in self.data.loc[:, self.img_col]))
+        if len(shapes) > 1:
+            raise ValueError(
+                "Cannot train images which occur in different shapes. "
+                f"(Found shapes: {', '.join(repr(shape) for shape in shapes)})"
+            )
+        return ImageShape(*list(shapes)[0])
 
-            plt.imshow(img, cmap=plt.cm.binary)
+    def amplify_data(self, mirror_axes: tuple[int, int, int, int] = (1, 2, 3, 4)) -> None:
+        """Amplifies data for current selected dataset"""
+        try:
+            self.dataset.amplify_data(mirror_axes=mirror_axes)
+        except ImageDimensionError:
+            self.unsqueeze_images()
+            self.dataset.amplify_data(mirror_axes=mirror_axes)
+            self.squeeze_images()
 
-            predicted_label = np.argmax(predictions_array)
-            if predicted_label == true_label:
-                color = "blue"
-            else:
-                color = "red"
-
-            plt.xlabel(
-                "{} {:2.0f}% ({})".format(
-                    class_names[predicted_label], 100 * np.max(predictions_array), class_names[true_label]
-                ),
-                color=color,
+    def load(self, model_savepath: Path = DEFAULT_ELPV_MODELPATH) -> None:
+        if model_savepath.exists() and self._model is not None:
+            self._model.load_weights(model_savepath)
+        elif not model_savepath.exists():
+            raise FileNotFoundError(
+                f"Couldn't load {type(self).__name__} model from non-existing file {str(model_savepath)!r}."
             )
 
-        def plot_value_array(i, predictions_array, true_label):
-            true_label = true_label[i]
-            plt.grid(False)
-            plt.xticks(range(10))
-            plt.yticks([])
-            thisplot = plt.bar(range(10), predictions_array, color="#777777")
-            plt.ylim([0, 1])
-            predicted_label = np.argmax(predictions_array)
+    @classmethod
+    def full_run_from_dataset(
+        cls,
+        dataset: ImageDataSetELPV,
+        tolerance: Optional[float] = None,
+        amplify_data: bool = True,
+        model_savepath: Path = DEFAULT_ELPV_MODELPATH,
+        force_retrain: bool = False,
+    ) -> None:
+        if tolerance is None:
+            tolerance = cls.FLOAT_COMP_TOL
+        tolerance: float
 
-            thisplot[predicted_label].set_color("red")
-            thisplot[true_label].set_color("blue")
+        model = cls(dataset)
 
+        if len(set(dataset.labels[model.type_col])) != 1:
+            raise ValueError("Training dataset for multiple types; not yet supported.")
+
+        if model.model_config.img_type == ValidImgType.GRAYSCALE:
+            model.images_to_grayscale_nonreversible()
+        elif model.model_config.img_type == ValidImgType.BINARY:
+            model.images_to_binary()
+
+        if amplify_data:
+            model.amplify_data()
+
+        if model_savepath.exists() and not force_retrain:
+            model.load()
+            evaluation = model.evaluate()
+        elif GPU_AVAILABLE:
+            try:
+                with tf.device(DEFAULT_GPU):
+                    model.build()
+                    evaluation: ModelEvaluation = model.evaluate()
+            except InternalError:
+                log.info(
+                    "It is likely that an attempt to run the model on the GPU failed. Trying CPU training instead."
+                )
+                time.sleep(1)
+                with tf.device("cpu:0"):
+                    model.build()
+                    evaluation: ModelEvaluation = model.evaluate()
+        else:
+            with tf.device("cpu:0"):
+                model.build()
+                evaluation: ModelEvaluation = model.evaluate()
+
+        model._model.save_weights()
+        try:
+            model.plot(predictions=evaluation.predictions)
+        except Exception as err:
+            raise RuntimeError(f"Model was trained, but plotting failed: {str(err)!r}") from err
+
+    def plot(self, predictions: TensorFlowPredictions):
+
+        log.info(str(predictions[0]))
+        log.info(str(np.argmax(predictions[0])))
+        log.info(str(self.test_labels[0]))
         i = 0
         plt.figure(figsize=(6, 3))
         plt.subplot(1, 2, 1)
-        plot_image(i, predictions[i], test_labels, test_images)
+        plot_image(i, predictions[i], self.test_labels, self.test_images, class_names=self.class_names)
         plt.subplot(1, 2, 2)
-        plot_value_array(i, predictions[i], test_labels)
+        plot_value_array(i, predictions[i], self.test_labels)
         plt.show()
 
-        # train_images, train_labels), (test_images, test_labels) = fashion_mnist
+    def build(self) -> None:
 
-        # images = np.array(dataset.images)
-
-
-def test_tflow():
-    fashion_mnist = tf.keras.datasets.fashion_mnist.load_data()
-
-    (train_images, train_labels), (test_images, test_labels) = fashion_mnist
-
-    class_names = [
-        "T-shirt/top",
-        "Trouser",
-        "Pullover",
-        "Dress",
-        "Coat",
-        "Sandal",
-        "Shirt",
-        "Sneaker",
-        "Bag",
-        "Ankle boot",
-    ]
-
-    train_images = train_images / 255.0
-    test_images = test_images / 255.0
-
-    # plt.figure(figsize=(10,10))
-    # for i in range(25):
-    #     plt.subplot(5,5,i+1)
-    #     plt.xticks([])
-    #     plt.yticks([])
-    #     plt.grid(False)
-    #     plt.imshow(train_images[i], cmap=plt.cm.binary)
-    #     plt.xlabel(class_names[train_labels[i]])
-    # plt.show()
-
-    model = tf.keras.Sequential(
-        [
-            tf.keras.layers.Flatten(input_shape=(28, 28)),
-            tf.keras.layers.Dense(128, activation="relu"),
-            tf.keras.layers.Dense(10),
-        ]
-    )
-
-    model.compile(
-        optimizer="adam",
-        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=["accuracy"],
-    )
-
-    model.fit(train_images, train_labels, epochs=10)
-
-    test_loss, test_acc = model.evaluate(test_images, test_labels, verbose=2)
-    print("\nTest accuracy:", test_acc)
-
-    probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
-    predictions = probability_model.predict(test_images)
-    print(predictions[0])
-    print(np.argmax(predictions[0]))
-    print(test_labels[0])
-
-    def plot_image(i, predictions_array, true_label, img):
-        true_label, img = true_label[i], img[i]
-        plt.grid(False)
-        plt.xticks([])
-        plt.yticks([])
-
-        plt.imshow(img, cmap=plt.cm.binary)
-
-        predicted_label = np.argmax(predictions_array)
-        if predicted_label == true_label:
-            color = "blue"
-        else:
-            color = "red"
-
-        plt.xlabel(
-            "{} {:2.0f}% ({})".format(
-                class_names[predicted_label], 100 * np.max(predictions_array), class_names[true_label]
-            ),
-            color=color,
+        self._model = tf.keras.Sequential(
+            [
+                tf.keras.layers.Flatten(input_shape=self.image_shape),
+                tf.keras.layers.Dense(
+                    self.model_config.n_nodes_layer2,
+                    activation=self.model_config.activation_func_id,
+                    dtype=np.float32,
+                ),
+                tf.keras.layers.Dense(self.model_config.n_nodes_layer3),
+            ]
         )
 
-    def plot_value_array(i, predictions_array, true_label):
-        true_label = true_label[i]
-        plt.grid(False)
-        plt.xticks(range(10))
-        plt.yticks([])
-        thisplot = plt.bar(range(10), predictions_array, color="#777777")
-        plt.ylim([0, 1])
-        predicted_label = np.argmax(predictions_array)
+    def _compile(self):
+        if self._model is None:
+            self.build()
 
-        thisplot[predicted_label].set_color("red")
-        thisplot[true_label].set_color("blue")
+        self._model.compile(
+            optimizer=self.model_config.optimizer,
+            loss=self.model_config.loss_function,
+            metrics=list(self.model_config.metrics),
+        )
+        self._compiled = True
 
-    i = 0
-    plt.figure(figsize=(6, 3))
-    plt.subplot(1, 2, 1)
-    plot_image(i, predictions[i], test_labels, test_images)
-    plt.subplot(1, 2, 2)
-    plot_value_array(i, predictions[i], test_labels)
-    plt.show()
+    def _fit(self):
+        if not self._compiled:
+            self._compile()
+        self._model.fit(self.train_images, self.train_labels, epochs=self.model_config.n_epochs)
+        self._fitted = True
+
+    def evaluate(self) -> ModelEvaluation:
+        self._compile()
+        self._fit()
+        test_loss, test_acc = self._model.evaluate(self.test_images, self.test_labels, verbose=2)
+        log.info(f"\nTest accuracy: {test_acc:.1f}")
+        probability_model = tf.keras.Sequential([self._model, tf.keras.layers.Softmax()])
+        predictions = probability_model.predict(self.test_images)
+        return ModelEvaluation(
+            loss=test_loss, accuracy=test_acc, probability_model=probability_model, predictions=predictions
+        )
+
+    def _ensure_train_imgdata(self) -> None:
+        if self.training_data.empty:
+            self.init_training_and_test_sets()
