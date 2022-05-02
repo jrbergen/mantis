@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import NamedTuple
+from typing import NamedTuple, TYPE_CHECKING
 
 from pandas import DataFrame
 
-from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
+if TYPE_CHECKING:
+    from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
 
 
 class DefectDetectionModel:

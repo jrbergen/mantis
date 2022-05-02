@@ -26,6 +26,7 @@ from tmap_defectdetector.model.cnn.base import (
     ImageShape,
     ModelEvaluation,
     ValidImgType,
+    ConvNetModel,
 )
 from tmap_defectdetector.model.plots import plot_image, plot_value_array
 
@@ -254,18 +255,7 @@ class CNNModelELPV(CNNModel):
         plt.show()
 
     def build(self) -> None:
-
-        self._model = tf.keras.Sequential(
-            [
-                tf.keras.layers.Flatten(input_shape=self.image_shape),
-                tf.keras.layers.Dense(
-                    self.model_config.n_nodes_layer2,
-                    activation=self.model_config.activation_func_id,
-                    dtype=np.float32,
-                ),
-                tf.keras.layers.Dense(self.model_config.n_nodes_layer3),
-            ]
-        )
+        self._model = ConvNetModel(self.model_config)
 
     def _compile(self):
         if self._model is None:

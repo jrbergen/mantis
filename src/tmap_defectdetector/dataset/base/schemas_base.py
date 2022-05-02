@@ -82,9 +82,7 @@ class SchemaEntry:
             )
             type_ = object
         if not isinstance(type_, (ExtensionDtype, np.dtype, type, str)):
-            raise TypeError(
-                f"Type attribute must be of type: ExtensionDtype | np.dtype | type | str."
-            )
+            raise TypeError(f"Type attribute must be of type: ExtensionDtype | np.dtype | type | str.")
         self._type = type_
 
     @property
@@ -134,13 +132,9 @@ class Schema:
         for attrname, entry in colentries.items():
             if isinstance(entry, SchemaEntry):
                 if attrname in encountered_attrnames:
-                    raise ValueError(
-                        f"Tried to set ColSchema with duplicate attribute name: {attrname!r}"
-                    )
+                    raise ValueError(f"Tried to set ColSchema with duplicate attribute name: {attrname!r}")
                 if entry.name in encountered_colnames:
-                    raise ValueError(
-                        f"Tried to set ColSchema with duplicate column name: {entry.name!r}"
-                    )
+                    raise ValueError(f"Tried to set ColSchema with duplicate column name: {entry.name!r}")
                 setattr(self, attrname, entry)
                 encountered_colnames.add(entry.name)
                 encountered_attrnames.add(attrname)
@@ -159,7 +153,7 @@ class Schema:
     def columns(self) -> Iterator[ColName]:
         """Yields column names for this schema."""
         for colentry in self:
-            yield colentry.name
+            yield str(colentry.name)
 
     @property
     def types(self) -> Iterator[ColType]:
@@ -207,9 +201,7 @@ class Schema:
         """Yields SchemaEntry instances defined in this ColSchema instance."""
         for attrname in dir(self):
             col_entry: SchemaEntry
-            if not attrname.startswith("_") and isinstance(
-                (col_entry := getattr(self, attrname)), SchemaEntry
-            ):
+            if not attrname.startswith("_") and isinstance((col_entry := getattr(self, attrname)), SchemaEntry):
                 yield col_entry
 
     def __len__(self) -> int:
@@ -310,7 +302,11 @@ SchemaDefectDataType = TypeVar("SchemaDefectDataType", bound=SchemaDefectData)
 class SchemaLabels(SchemaDefectData):
     """Specifies schema for label data."""
 
-    pass
+    LABEL_CATEGORY: SchemaEntry = SchemaEntry(
+        name="LABEL_CATEGORY",
+        type_="category",
+        docstring=("Column representing the label categories as pd.Categorical strings."),
+    )
 
 
 @dataclass(repr=False)
@@ -323,6 +319,15 @@ class SchemaSamples(SchemaDefectData):
         "SAMPLE_PATH",
         str,
         docstring="Full path of the file which stores the sample data, as string.",
+    )
+    SAMPLE_PATH_CATEGORY: SchemaEntry = SchemaEntry(
+        "SAMPLE_PATH_CATEGORY",
+        str,
+        docstring=(
+            "Full path of the file which stores the sample data, as string; "
+            "used when sample paths are moved to subdirectories reprsenting "
+            "categories."
+        ),
     )
     SAMPLE: SchemaEntry = SchemaEntry(
         "SAMPLE",

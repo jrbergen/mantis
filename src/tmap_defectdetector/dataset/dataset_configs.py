@@ -19,6 +19,7 @@ import cv2 as cv
 
 from tmap_defectdetector.dataset.base.dataset_configs_base import (
     ImageDataSetConfig,
+    FALLBACK_LABEL_CATEGORY,
 )
 from tmap_defectdetector.dataset.downloaders import DataSetDownloaderELPV
 from tmap_defectdetector.dataset.base.schemas_base import (
@@ -50,6 +51,7 @@ class DataSetConfigELPV(ImageDataSetConfig):
     SCHEMA_LABELS: ClassVar[SchemaLabelsELPV] = SchemaLabelsELPV()
     SCHEMA_SAMPLES: ClassVar[SchemaSamplesELPV] = SchemaSamplesELPV()
     SCHEMA_FULL: ClassVar[SchemaFullELPV] = SchemaFullELPV()
+    DEFAULT_LABEL_NAMES: tuple[str, ...] = ("pass", "minor_damage", "major_damage", "fail")
 
     def __init__(
         self,
@@ -136,6 +138,9 @@ class DataSetConfigELPV(ImageDataSetConfig):
         log.info("Wrapping up label DataFrame construction...")
         # Make column with path to label file
         label_df[DataSetConfigELPV.SCHEMA_LABELS.LABEL_FILENAME.name] = [lpath] * len(label_df)
+        label_df[DataSetConfigELPV.SCHEMA_LABELS.LABEL_CATEGORY.name] = [FALLBACK_LABEL_CATEGORY] * len(
+            label_df
+        )
 
         # Add column with ids identifying which labels belong to which samples (in this case the path is used)
         label_df[DataSetConfigELPV.SCHEMA_LABELS.LABEL_SAMPLE_ID.name] = [
@@ -146,6 +151,7 @@ class DataSetConfigELPV(ImageDataSetConfig):
         for col in type(self).SCHEMA_LABELS:
             label_df[col.name] = label_df[col.name].astype(col.type)
 
+        label_df = self.add_categorical_column_to_label_data(label_data=label_df)
         log.info(f"Read ELPV sample labels from file: {str(lpath)}.")
         return label_df
 
@@ -172,6 +178,7 @@ class DataSetConfigELPV(ImageDataSetConfig):
         ):
             sample_dict[self.SCHEMA_SAMPLES.SAMPLE.name].append(cv.imread(str(file.resolve())))
             sample_dict[self.SCHEMA_SAMPLES.SAMPLE_PATH.name].append(str(file.resolve()))
+            sample_dict[self.SCHEMA_SAMPLES.SAMPLE_PATH_CATEGORY.name].append(str(file.resolve()))
             sample_dict[self.SCHEMA_SAMPLES.LABEL_SAMPLE_ID.name].append(file.name)
 
             # Initialize data amplification metadata columns
@@ -191,6 +198,34 @@ class DataSetConfigELPV(ImageDataSetConfig):
             df_samples[entry.name] = df_samples[entry.name].astype(entry.type)
 
         return df_samples
+
+    def add_categorical_column_to_label_data(
+        self,
+        label_data: pd.DataFrame,
+        label_names: tuple[str, ...] = DEFAULT_LABEL_NAMES,
+        label_bins=(-0.1, 0.25, 0.5, 0.75, 1.1),
+    ) -> pd.DataFrame:
+        """
+        Adds categorical column labels to data.
+        Requires knowledge of the number of categories beforehand.
+        """
+
+        col: str = self.SCHEMA_FULL.PROBABILITY.name
+        lblcat: str = self.SCHEMA_FULL.LABEL_CATEGORY.name
+
+        categories = sorted(list(set(label_data.loc[:, col])))
+        if len(label_names) != (n_labels_found := len(categories)):
+            raise ValueError(
+                f"Number of categorical values doesn't equal number "
+                f"of different encountered labels ({n_labels_found})."
+            )
+
+        if len(label_bins) != len(label_names) + 1:
+            raise ValueError(f"Number of bins must be number of label names + 1.")
+
+        label_data[lblcat] = pd.cut(label_data.loc[:, col], bins=label_bins, labels=label_names)
+
+        return label_data
 
 
 class DataSetConfigWineDetector(ImageDataSetConfig):

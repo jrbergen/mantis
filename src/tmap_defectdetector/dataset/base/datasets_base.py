@@ -62,11 +62,11 @@ class DefectDetectionDataSet:
 
     @property
     def labels(self) -> DataFrame | Series:
-        return self._data_filtered.loc[:, self.dataset_cfg.schema_labels.columns]
+        return self._data_filtered.loc[:, list(self.dataset_cfg.schema_labels.columns)]
 
     @property
     def samples(self) -> DataFrame | Series:
-        return self._data_filtered.loc[:, self.dataset_cfg.schema_samples.columns]
+        return self._data_filtered.loc[:, list(self.dataset_cfg.schema_samples.columns)]
 
     @property
     def dataset_cfg(self) -> DataSetConfig:
@@ -796,3 +796,7 @@ class DefectDetectionDataSetImages(DefectDetectionDataSet):
                     f"Minimum required remaining free space on target filesystem (disk/memory) exceeded: {leave_free_space_bytes/1024**2:.2f}MiB"
                 )
             cv.imwrite(str(savepath.resolve()), getattr(row, sample_col))
+
+    def save_categorical(self, label_names: tuple[str, ...] = ("pass", "fail")) -> None:
+        """Moves images to categories for tensorflow ImageDataGenerator's categorical data processing"""
+        raise NotImplementedError("Not implemented for baseclass.")
