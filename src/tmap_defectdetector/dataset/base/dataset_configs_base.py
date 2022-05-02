@@ -44,6 +44,8 @@ if TYPE_CHECKING:
         DefectDetectionDataSet,
     )
 
+FALLBACK_LABEL_CATEGORY: str = "UNDEFINED"
+
 
 class DataSetConfig(ABC):
 

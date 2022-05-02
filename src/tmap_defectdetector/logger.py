@@ -49,7 +49,7 @@ def _initialize_logger(log_name: str = __name__) -> logging.Logger:
     logger = logging.getLogger(log_name)
 
     # Handler for terminal/console stdout
-    console_handler = RichHandler(rich_tracebacks=True, log_time_format="%Y-%m-%dT%H:%M:%S%z")
+    console_handler = RichHandler(rich_tracebacks=True, log_time_format="%Y-%m-%dT%H:%M:%S%z", markup=True)
     console_format = logging.Formatter(
         f"{'[PID=%(process)d]' if LOG_SHOW_PROCESS_ID else ''}%(module)s.%(funcName)s: %(message)s"
     )

@@ -13,10 +13,12 @@ from tmap_defectdetector.dataset.base.dataset_configs_base import DataSetConfig
 from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
 
 from tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV, DataSetConfigWineDetector
+from tmap_defectdetector.dataset.downloaders import DataSetDownloaderELPV
 from tmap_defectdetector.dataset.schemas import SchemaLabelsELPV
 from tmap_defectdetector.model import GPU_AVAILABLE
-from tmap_defectdetector.model.tflow import CNNModelELPV, CNNModelConfig
-from tmap_defectdetector.model.tflow_old import test_tflow
+from tmap_defectdetector.model.cnn.elpv import CNNModelELPV
+from tmap_defectdetector.model.cnn.base import CNNModelConfig
+from tmap_defectdetector.model.cnn.elpv_vgg16 import elpv_vgg16
 
 from tmap_defectdetector.path_helpers import open_directory_with_filebrowser
 from tmap_defectdetector import DIR_TMP, TEXTUAL_LOGPATH
@@ -55,8 +57,8 @@ def example_elpv(save_and_open_amplified_dataset: bool = False):
         Can take quite some time and space(default = False)
     """
     # Initialize the dataset downloader and download the ELPV dataset from its git repository.
-    # downloader = DataSetDownloaderELPV()
-    # downloader.download()  # The dataset is downloaded to %LOCALAPPDATA%/.tmapdd/datasets/dataset-elpv/ (on Windows)
+    downloader = DataSetDownloaderELPV()
+    downloader.download()  # The dataset is downloaded to %LOCALAPPDATA%/.tmapdd/datasets/dataset-elpv/ (on Windows)
 
     # Clear terminal
     os.system("clear") if platform.system() == "Linux" else os.system("cls")
@@ -71,16 +73,18 @@ def example_elpv(save_and_open_amplified_dataset: bool = False):
     # Here comes the preprocessing step (we could e.g. make a ImageDataSetPreProcessor class/function or perhaps
     # put preprocessing methods in the ImageDataSet class itself later.
     # dataset.amplify_data()
+    dataset.move_data_categorical_subdirs()
+    # dataset.save_categorical()
 
     # Specify model configuration here manually for now
-    model_config = CNNModelConfig(
-        n_epochs=1024 if GPU_AVAILABLE else 64,
-    )
+    # model_config = CNNModelConfig(
+    #     n_epochs=1024 if GPU_AVAILABLE else 64,
+    # )
 
     # Construct and train model
-    model = CNNModelELPV(dataset, model_config=model_config)
-
-    model.full_run_from_dataset(dataset=dataset)
+    # model = CNNModelELPV(dataset, model_config=model_config)
+    #
+    # model.full_run_from_dataset(dataset=dataset)
 
     # Specify and create a temporary directory to save our (amplified) image dataset.
     # Then open it in your OS's default filebrowser
@@ -103,6 +107,8 @@ def main():
         tui()
     else:
         example_elpv()
+        elpv_vgg16()
+
         # test_tflow()
 
 
