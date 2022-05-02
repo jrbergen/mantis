@@ -8,7 +8,7 @@ from typing import TypeAlias, Union, cast
 from numpy import ndarray
 from textual.app import App
 
-from build.lib.tmap_defectdetector.dataset.base.dataset_configs_base import ImageDataSetConfig
+
 from tmap_defectdetector import DIR_TMP
 from tmap_defectdetector.dataset.base.datasets_base import DefectDetectionDataSetImages
 from tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV
