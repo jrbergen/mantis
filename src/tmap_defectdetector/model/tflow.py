@@ -61,6 +61,7 @@ import matplotlib.pyplot as plt
 from pandas import DataFrame
 
 from tmap_defectdetector.dataset.datasets import ImageDataSetELPV
+from tmap_defectdetector.logger import log
 
 if TYPE_CHECKING:
     from build.lib.tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV
