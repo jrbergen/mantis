@@ -16,18 +16,26 @@ dependencies = [
     "GitPython~=3.1.27",
     "rich~=12.2.0",
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 0d500bfc0553723d335d5d1f86d9d6f5f3b6445f
     "numpy~=1.22.3"
-    "pandas~=1.4.2"
     "seaborn~=0.11.2"
+<<<<<<< HEAD
     "sklearn~=0.0"
 =======
     "numpy~=1.22.3",
     "seaborn~=0.11.2",
+=======
+>>>>>>> 0d500bfc0553723d335d5d1f86d9d6f5f3b6445f
     "sklearn~=0.0",
     "pandas~=1.4.2",
     "opencv-python~=4.5.5.64",
     "tqdm~=4.64.0"
+<<<<<<< HEAD
 >>>>>>> 9dd789ba3a91ed6b2d24b2f318842ba36ee139c5
+=======
+>>>>>>> 0d500bfc0553723d335d5d1f86d9d6f5f3b6445f
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
