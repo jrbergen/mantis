@@ -25,7 +25,7 @@ determining quality of wine.
 
 - Final Linear Regression curve was found to be with slope -1.7 and intercept 6.5.
 
-![Alt text](/Images/Final%20Plot.pngy.png?raw=true "Title")
+![Alt text](/Images/Final%20Plot.png?raw=true "Title")
 
 
 ## Part II - Image Defect Predictor
