@@ -14,6 +14,10 @@ def ensure_img_is_array(img: ndarray) -> None:
         raise TypeError(f"Image must be an instance of {ndarray.__qualname__}, got type {type(img)} instead.")
 
 
+class ImageDimensionError(ValueError):
+    pass
+
+
 def ensure_array_dimension(arr: ndarray, dim: int, errmsg: str = "") -> None:
     """Ensures an array is of a particular dimension.
 
@@ -21,13 +25,13 @@ def ensure_array_dimension(arr: ndarray, dim: int, errmsg: str = "") -> None:
     :param dim: number of dimensions to enforce.
     :param errmsg: (optional) information to add to error if dimension is invalid (default = "").
 
-    :raises ValueError: if array is not of the desired dimension.
+    :raises ImageDimensionError: if array is not of the desired dimension.
     """
     if arr.ndim != dim:
         full_err = f"Array must be of dimension {dim}; got array of dimension {arr.ndim}."
         if errmsg:
             full_err += f", {errmsg}"
-        raise ValueError(errmsg)
+        raise ImageDimensionError(errmsg)
 
 
 def ensure_square_img(img: ndarray) -> None:

@@ -9,7 +9,7 @@ import os
 import warnings
 from functools import cached_property
 from pathlib import Path
-from typing import ClassVar, Collection, Optional, Type, TYPE_CHECKING
+from typing import ClassVar, Collection, Optional, Type, TYPE_CHECKING, cast
 
 import numpy as np
 import pandas as pd

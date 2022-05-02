@@ -543,9 +543,9 @@ class DefectDetectionDataSetImages(DefectDetectionDataSet):
         self,
         translations: Collection[tuple[float | int, float | int]] = (
             (0.25, 0.25),
-            (0.25, -0.25),
+            # (0.25, -0.25),
             (-0.25, -0.25),
-            (-0.25, 0.25),
+            # (-0.25, 0.25),
         ),
     ) -> None:
         """

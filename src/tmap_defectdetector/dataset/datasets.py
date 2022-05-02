@@ -3,10 +3,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import TypeAlias, Union
+from typing import TypeAlias, Union, cast
 
 from numpy import ndarray
 from textual.app import App
+
 
 from tmap_defectdetector import DIR_TMP
 from tmap_defectdetector.dataset.base.datasets_base import DefectDetectionDataSetImages
@@ -26,6 +27,14 @@ class ImageDataSetELPV(DefectDetectionDataSetImages):
         (See https://github.com/zae-bayern/elpv-dataset for original dataset).
         """
         super().__init__(dataset_cfg=dataset_cfg)
+
+    @property
+    def dataset_cfg(self) -> DataSetConfigELPV:
+        if not isinstance((cfg := super().dataset_cfg), DataSetConfigELPV):
+            raise TypeError(
+                f"Expected dataset configuration of type {DataSetConfigELPV.__name__}, got {type(cfg)}."
+            )
+        return cast(DataSetConfigELPV, cfg)
 
     @classmethod
     def run(

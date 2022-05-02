@@ -3,6 +3,7 @@ Contains application-wide runtime-initialized names and directory paths.
 """
 from __future__ import annotations
 
+import platform
 import tempfile
 from pathlib import Path
 
@@ -28,3 +29,11 @@ DIR_DATASETS: Path = DIR_APP / "datasets"
 
 TEXTUAL_LOGPATH: Path = DIR_APP / "textual.log"
 """Separate log file for TUI (which uses textual)"""
+
+
+DEFAULT_ELPV_MODELPATH = (
+    Path(DIR_TMP, "last_model_elpv.tflowmodel")
+    if platform.system() == "Linux"
+    else Path(DIR_APP, "last_model_elpv.tflowmodel")
+)
+"""Path to save ELPV CNN training weights to."""
