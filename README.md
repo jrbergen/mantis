@@ -27,6 +27,7 @@ determining quality of wine.
 
 ![Alt text](/Images/Final%20Plot.png?raw=true "Title")
 
+No interface was developed for this part of the project as it was not necessary for the basic linear regression.
 
 ## Part II - Image Defect Predictor
 Here, a machine learning algorithm which utilizes a Convolutional Neural Network is used to detect and classify 
