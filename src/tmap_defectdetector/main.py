@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from tmap_defectdetector.dataset.downloaders import DataSetDownloaderELPV
 
 from tmap_defectdetector.dataset.dataset_configs import DataSetConfigELPV, DataSetConfigWineDetector
 from tmap_defectdetector.dataset.schemas import SchemaLabelsELPV
+from tmap_defectdetector.model.tflow import CNNModel, CNNModelELPV
 
 from tmap_defectdetector.path_helpers import open_directory_with_filebrowser
 from tmap_defectdetector import DIR_TMP, TEXTUAL_LOGPATH
@@ -31,7 +33,7 @@ def gui():
 
 def tui():
     """TUI entrypoint for Mantis Defect Detector."""
-    version_check()
+    os.environ["PYTHONASYNCIODEBUG"] = "1"
     dataset_configs: list[DataSetConfig] = [
         DataSetConfigELPV(),
         DataSetConfigWineDetector(name="Wine Detector Dataset (Not yet implemented)"),
@@ -40,7 +42,7 @@ def tui():
     app.run(title="Defect Detector - TMAP April 2022", log=TEXTUAL_LOGPATH, dataset_configs=dataset_configs)
 
 
-def example_elpv(save_and_open_amplified_dataset: bool = True):
+def example_elpv(save_and_open_amplified_dataset: bool = False):
     """
     Performs an example run which (down)loads the ELPV defect image dataset,
     amplifies it with mirroring, rotations, and translations, and then optionally
@@ -51,8 +53,8 @@ def example_elpv(save_and_open_amplified_dataset: bool = True):
         Can take quite some time and space(default = False)
     """
     # Initialize the dataset downloader and download the ELPV dataset from its git repository.
-    downloader = DataSetDownloaderELPV()
-    downloader.download()  # The dataset is downloaded to %LOCALAPPDATA%/.tmapdd/datasets/dataset-elpv/ (on Windows)
+    # downloader = DataSetDownloaderELPV()
+    # downloader.download()  # The dataset is downloaded to %LOCALAPPDATA%/.tmapdd/datasets/dataset-elpv/ (on Windows)
 
     # Initialize/load the ELPV dataset using the ELPV dataset configuration.
     elpv_dataset_config = DataSetConfigELPV()
@@ -63,7 +65,11 @@ def example_elpv(save_and_open_amplified_dataset: bool = True):
 
     # Here comes the preprocessing step (we could e.g. make a ImageDataSetPreProcessor class/function or perhaps
     # put preprocessing methods in the ImageDataSet class itself later.
-    dataset.amplify_data()
+    # dataset.amplify_data()
+
+    # Construct and train model
+    model = CNNModelELPV()
+    model.full_run_from_dataset(dataset)
 
     # Specify and create a temporary directory to save our (amplified) image dataset.
     # Then open it in your OS's default filebrowser
@@ -80,9 +86,12 @@ def example_elpv(save_and_open_amplified_dataset: bool = True):
 
 
 def main():
-    os.environ["PYTHONASYNCIODEBUG"] = "1"
     version_check()
-    example_elpv()
+
+    if any(s in sys.argv[1:] for s in ("--tui", "-tui", "-t", "--t")):
+        tui()
+    else:
+        example_elpv()
 
 
 if __name__ == "__main__":
