@@ -19,7 +19,7 @@ compare with validation
 ## Part I - Wine Quality Predictor
 Here we see a linear regression Machine Learning Algorithm applied to a generalized data for 
 determining quality of wine based on different parameters such as alcohol content, density, pH, etc.
--![Alt text](Images/Raw data Quality vs Volatile acidity.png?raw=true "Title")
+-![Alt text](/Images/Raw%20Data%20Quality%20vs%20Volatile%20acidity.png?raw=true "Title")
 -
 .
 .
