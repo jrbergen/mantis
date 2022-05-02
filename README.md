@@ -21,11 +21,11 @@ compare with validation
 determining quality of wine.
 - The dataset provides different parameters as input for determining quality such as alcohol level, pH, chlorides, etc. However for this project, volatile acidity was chosen as it shows a correlation with quality. See image below:
 
-- ![Alt text](/Images/Raw%20Data%20Quality%20vs%20Volatile%20acidity.png?raw=true "Title")
+![Alt text](/Images/Raw%20Data%20Quality%20vs%20Volatile%20acidity.png?raw=true "Title")
 
 - Final Linear Regression curve was found to be with slope -1.7 and intercept 6.5.
 
-- ![Alt text](/Images/Final%20Plot.pngy.png?raw=true "Title")
+![Alt text](/Images/Final%20Plot.pngy.png?raw=true "Title")
 
 
 ## Part II - Image Defect Predictor
