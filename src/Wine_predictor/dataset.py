@@ -4,8 +4,10 @@ import pandas as pd
 from pathlib import Path
 
 class WineData:
-    def __init__(self):
-        self.path = Path(__file__).parent.parent / "data/winequality-red.csv"
+    def __init__(self, path: Path = Path(__file__).parent.parent.parent / "data/winequality-red.csv"):
+        
+
+        self.path: Path = path
         self.df                 = None
 
         # input factors
@@ -23,7 +25,7 @@ class WineData:
         # output factor
         self.quality            = None
 
-    def ImportData(self):
+    def import_data(self):
         # Function to import csv file
         # and run initial file changes to create good data
         self.df = pd.read_csv(self.path)

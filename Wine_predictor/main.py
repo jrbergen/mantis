@@ -30,7 +30,7 @@ def main():
     winedata = dataset.WineData()       # Create object for operating on data
     #print(winedata.path)
     
-    winedata.ImportData()               # Imported Data from csv format 
+    winedata.import_data()               # Imported Data from csv format 
     #print(winedata.df)                 # winedata.df stores all data
 
     X, Y = AssignXY(winedata.df)        # Obtaining X and Y for curve fitting
@@ -40,7 +40,7 @@ def main():
     model = LinearRegression()
     model.fit(train_x, train_y)
     print("Fitting Linear Model \n")
-    pred = model.predict(test_x)
+    pred = model.predict(test_x)    # Predict y values based on test_x
     #print(np.sqrt(metrics.mean_squared_error(test_y, pred))) 
     sn.scatterplot(pred, test_y)
     plt.show()

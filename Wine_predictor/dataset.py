@@ -23,7 +23,7 @@ class WineData:
         # output factor
         self.quality            = None
 
-    def ImportData(self):
+    def import_data(self):
         # Function to import csv file
         # and run initial file changes to create good data
         self.df = pd.read_csv(self.path)
