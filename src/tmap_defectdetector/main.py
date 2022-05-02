@@ -107,7 +107,17 @@ def main():
         tui()
     else:
         example_elpv()
-        elpv_vgg16()
+        for iiarg, arg in enumerate(sys.argv[1:]):
+
+            if any(arg == s for s in ("-e", "--epochs", "--e")):
+                try:
+                    epochs = int(sys.argv[1:][iiarg + 1])
+                    elpv_vgg16(epochs=epochs)
+                except (IndexError, TypeError):
+                    print("Missing epoch argument after -e? (or not castable to int)")
+                    raise ValueError("Missing epoch argument after -e? (or not castable to int)")
+            else:
+                elpv_vgg16()
 
         # test_tflow()
 
