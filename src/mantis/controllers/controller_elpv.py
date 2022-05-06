@@ -34,7 +34,7 @@ class TUIControllerELPV(TUIControllerDataSet):
         if hasattr(self.dataset, "save_images"):
             new_data_dir = Path(
                 DIR_TMP,
-                f"tmap_defectdetector_dataset_{datetime.utcnow().strftime('%Y_%m_%d_T%H%M%SZ')}",
+                f"{APP_NAME}_dataset_{datetime.utcnow().strftime('%Y_%m_%d_T%H%M%SZ')}",
             )
             new_data_dir.mkdir(parents=True, exist_ok=True)
             self.dataset.save_images(new_data_dir)

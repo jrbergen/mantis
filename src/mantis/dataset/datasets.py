@@ -12,7 +12,7 @@ from numpy import ndarray
 from textual.app import App
 from tqdm import tqdm
 
-from mantis import DIR_TMP, DIR_DATASETS
+from mantis import DIR_TMP, DIR_DATASETS, APP_NAME
 from mantis.dataset.base.dataset_configs_base import FALLBACK_LABEL_CATEGORY
 from mantis.dataset.base.datasets_base import DefectDetectionDataSetImages
 from mantis.dataset.dataset_configs import DataSetConfigELPV
@@ -59,7 +59,7 @@ class ImageDataSetELPV(DefectDetectionDataSetImages):
         """
         # Initialize the dataset downloader and download the ELPV dataset from its git repository.
         downloader = DataSetDownloaderELPV()
-        downloader.download()  # The dataset is downloaded to %LOCALAPPDATA%/.tmapdd/datasets/dataset-elpv/ (on Windows)
+        downloader.download()  # The dataset is downloaded to %LOCALAPPDATA%/.mantis/datasets/dataset-elpv/ (on Windows)
 
         # Initialize/load the ELPV dataset using the ELPV dataset configuration.
         elpv_dataset_config = DataSetConfigELPV(**dataset_cfg_kwargs)
@@ -79,7 +79,7 @@ class ImageDataSetELPV(DefectDetectionDataSetImages):
         if save_and_open_amplified_dataset:
             new_data_dir = Path(
                 DIR_TMP,
-                f"tmap_defectdetector_dataset_{datetime.utcnow().strftime('%Y_%m_%d_T%H%M%SZ')}",
+                f"{APP_NAME}_dataset_{datetime.utcnow().strftime('%Y_%m_%d_T%H%M%SZ')}",
             )
             new_data_dir.mkdir(parents=True, exist_ok=True)
             dataset.save_images(new_data_dir)

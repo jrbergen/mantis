@@ -15,13 +15,10 @@ from mantis.dataset.datasets import ImageDataSetELPV
 from mantis.dataset.dataset_configs import DataSetConfigELPV, DataSetConfigWineDetector
 from mantis.dataset.downloaders import DataSetDownloaderELPV
 from mantis.dataset.schemas import SchemaLabelsELPV
-from mantis.model import GPU_AVAILABLE
-from mantis.model.cnn.elpv import CNNModelELPV
-from mantis.model.cnn.base import CNNModelConfig
 from mantis.model.cnn.elpv_vgg16 import elpv_vgg16
 
 from mantis.path_helpers import open_directory_with_filebrowser
-from mantis import DIR_TMP, TEXTUAL_LOGPATH
+from mantis import DIR_TMP, TEXTUAL_LOGPATH, APP_NAME
 from mantis.tui.app import MantisTui
 
 
@@ -43,7 +40,7 @@ def tui():
         DataSetConfigWineDetector(name="Wine Detector Dataset (Not yet implemented)"),
     ]
     app = MantisTui()
-    app.run(title="Defect Detector - TMAP April 2022", log=TEXTUAL_LOGPATH, dataset_configs=dataset_configs)
+    app.run(title="Defect Detector", log=TEXTUAL_LOGPATH, dataset_configs=dataset_configs)
 
 
 def example_elpv(save_and_open_amplified_dataset: bool = False):
@@ -58,7 +55,7 @@ def example_elpv(save_and_open_amplified_dataset: bool = False):
     """
     # Initialize the dataset downloader and download the ELPV dataset from its git repository.
     downloader = DataSetDownloaderELPV()
-    downloader.download()  # The dataset is downloaded to %LOCALAPPDATA%/.tmapdd/datasets/dataset-elpv/ (on Windows)
+    downloader.download()  # The dataset is downloaded to %LOCALAPPDATA%/.mantis/datasets/dataset-elpv/ (on Windows)
 
     # Clear terminal
     os.system("clear") if platform.system() == "Linux" else os.system("cls")
@@ -93,7 +90,7 @@ def example_elpv(save_and_open_amplified_dataset: bool = False):
     if save_and_open_amplified_dataset:
         new_data_dir = Path(
             DIR_TMP,
-            f"tmap_defectdetector_dataset_{datetime.utcnow().strftime('%Y_%m_%d_T%H%M%SZ')}",
+            f"{APP_NAME}_dataset_{datetime.utcnow().strftime('%Y_%m_%d_T%H%M%SZ')}",
         )
         new_data_dir.mkdir(parents=True, exist_ok=True)
         dataset.save_images(new_data_dir)

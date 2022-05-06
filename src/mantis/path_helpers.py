@@ -21,18 +21,17 @@ def get_appdir(dirname: str, make_if_non_exsiting: bool = True) -> Path:
     """
     match platform.system():
         case "Linux":
-            #dir_ = Path.home() / f".{dirname}"  # e.g. /home/$USER/.tmap-detector
-            dir_ = Path(f"/home/example-user/.{dirname}")
+            dir_ = Path.home() / f".{dirname}"  # e.g. /home/$USER/.mantis
         case "Windows":
             if (appdata_dir := os.getenv("LOCALAPPDATA")) is None:
                 raise EnvironmentError("LOCALAPPDATA environment variable does not seem to be set.")
             dir_ = Path(
                 str(appdata_dir), dirname
-            )  # e.g. C:/Users/$USER/AppData/Local/tmap-detector
+            )  # e.g. C:/Users/$USER/AppData/Local/mantis
         case "Darwin":
             dir_ = (
                 Path.home() / "Library" / "Preferences" / dirname
-            )  # e.g.  ~/Library/Preferences/tmap-detector
+            )  # e.g.  ~/Library/Preferences/mantis
         case "Java":
             raise NotImplementedError("Java platform not (yet?) supported.")
         case _:
