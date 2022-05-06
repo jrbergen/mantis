@@ -12,11 +12,8 @@ from textual.reactive import Reactive
 from textual.widget import Widget
 import tensorflow as tf
 
-from tmap_defectdetector import TEXTUAL_LOGPATH
+from tmap_defectdetector import TEXTUAL_LOGPATH, FILE_LOG, DIR_APP
 from tmap_defectdetector.tui.widgets.statusvars import Status
-
-APP_DIR = Path.home() / ".tmapdd"
-LOG_FILE = Path(APP_DIR, "tmapdd.log")
 
 
 @rich.repr.auto(angular=False)
@@ -30,8 +27,8 @@ class InfoPanel(Widget, can_focus=False):
 
     n_input_files: Reactive[int] = Reactive(0)
     dataset_size: Reactive[int] = Reactive(0)
-    application_dir: Reactive[str] = Reactive(APP_DIR)
-    log_filepath: Reactive[str] = Reactive(LOG_FILE)
+    application_dir: Reactive[str] = Reactive(DIR_APP)
+    log_filepath: Reactive[str] = Reactive(FILE_LOG)
     label_file: Reactive[str] = Reactive("<Undefined>")
 
     def __init__(self, *, name: str | None, height: int | None = None) -> None:
