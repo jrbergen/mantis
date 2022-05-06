@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import psutil as psutil
 import tensorflow as tf
 from keras import Model
 from keras.applications.vgg16 import VGG16
@@ -18,12 +19,15 @@ def elpv_data_generators(
     validate_dir: Path = Path(DIR_DATASETS, "dataset-elpv/categories/validate"),
     tgt_size: tuple[int, int] = (128, 128),
     rescale: float = 1.0 / 255,
-    shear_range: float = 0.2,
-    zoom_range: float = 0.2,
+    shear_range: float = 0.4,
+    zoom_range: float = 0.5,
+    rotation_range: int = 30,
     batch_size: int = 32,
     shuffle: bool = True,
     class_mode: str = "categorical",
     classes: tuple[str, ...] = ("pass1", "minor_damage", "major_damage", "fail"),
+    horizontal_flip: bool = True,
+    vertical_flip: bool = True,
 ) -> tuple[DirectoryIterator, DirectoryIterator]:
     if not train_dir.exists():
         train_dir.mkdir(parents=True, exist_ok=True)
@@ -31,7 +35,14 @@ def elpv_data_generators(
         validate_dir.mkdir(parents=True, exist_ok=True)
 
     log.info("[yellow2]Generating training data[/]...")
-    train_datagen = ImageDataGenerator(rescale=rescale, shear_range=shear_range, zoom_range=zoom_range)
+    train_datagen = ImageDataGenerator(
+        rescale=rescale,
+        shear_range=shear_range,
+        zoom_range=zoom_range,
+        horizontal_flip=horizontal_flip,
+        vertical_flip=vertical_flip,
+        rotation_range=rotation_range,
+    )
 
     train_generator = train_datagen.flow_from_directory(
         train_dir,
@@ -43,7 +54,9 @@ def elpv_data_generators(
     )
 
     log.info("[yellow2]Generating validation data[/]...")
-    validation_datagen = ImageDataGenerator(rescale=rescale)
+    validation_datagen = ImageDataGenerator(
+        rescale=rescale,
+    )
     validation_generator = validation_datagen.flow_from_directory(
         validate_dir,
         shuffle=shuffle,
@@ -63,7 +76,13 @@ def elpv_vgg16(
     include_top: bool = True,
     num_categories: int = 4,
 ) -> History:
-    vgg16_model = VGG16(pooling=pooling, weights=weights, include_top=include_top, input_shape=input_shape)
+    vgg16_model = VGG16(
+        pooling=pooling,
+        weights=weights,
+        include_top=include_top,
+        input_shape=input_shape,
+        classes=num_categories if weights != "imagenet" else 1000,
+    )
     for layers in vgg16_model.layers:
         layers.trainable = False
     vgg_x = Flatten()(vgg16_model.layers[-1].output)
@@ -72,8 +91,6 @@ def elpv_vgg16(
     vgg16_final_model = Model(vgg16_model.input, vgg_x)
     vgg16_final_model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["acc"])
 
-    # VGG16
-    number_of_epochs = epochs
     vgg16_filepath = "vgg_16_" + "-saved-model-{epoch:02d}-acc-{val_acc:.2f}.hdf5"
     vgg_checkpoint = tf.keras.callbacks.ModelCheckpoint(
         vgg16_filepath, monitor="val_acc", verbose=1, save_best_only=True, mode="max"
@@ -85,7 +102,9 @@ def elpv_vgg16(
     )
     vgg16_history = vgg16_final_model.fit(
         train_generator,
-        epochs=number_of_epochs,
+        use_multiprocessing=True,
+        workers=12 if 12 > psutil.cpu_count() > 1 else psutil.cpu_count(),
+        epochs=epochs,
         validation_data=validation_generator,
         callbacks=[vgg_checkpoint, vgg_early_stopping],
         verbose=1,

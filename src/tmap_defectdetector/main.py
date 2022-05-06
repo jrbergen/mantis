@@ -103,23 +103,23 @@ def example_elpv(save_and_open_amplified_dataset: bool = False):
 def main():
     version_check()
 
-    if any(s in sys.argv[1:] for s in ("--tui", "-tui", "-t", "--t")):
+    if platform.system() == "Linux" or any(s in sys.argv[1:] for s in ("--tui", "-tui", "-t", "--t")):
         tui()
     else:
         example_elpv()
         for iiarg, arg in enumerate(sys.argv[1:]):
 
-            if any(arg == s for s in ("-e", "--epochs", "--e")):
+            if arg in ("-e", "--epochs", "--e"):
                 try:
                     epochs = int(sys.argv[1:][iiarg + 1])
-                    elpv_vgg16(epochs=epochs)
                 except (IndexError, TypeError):
-                    print("Missing epoch argument after -e? (or not castable to int)")
-                    raise ValueError("Missing epoch argument after -e? (or not castable to int)")
-            else:
-                elpv_vgg16()
+                    print("Epoch argument not castable to int?")
+                    raise ValueError("Epoch argument not castable to int?")
+                break
+        else:
+            epochs = 50
 
-        # test_tflow()
+        elpv_vgg16(epochs=epochs)
 
 
 if __name__ == "__main__":
