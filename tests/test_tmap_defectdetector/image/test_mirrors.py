@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from numpy import ndarray
 
-from tmap_defectdetector.image.mirrors import (
+from mantis.image.mirrors import (
     mirror_horizontal,
     mirror_vertical,
     mirror_diag_bottomleft_topright,

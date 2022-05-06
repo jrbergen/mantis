@@ -5,7 +5,7 @@ import pytest
 from numpy import ndarray
 import numpy as np
 
-from tmap_defectdetector.image.rotations import rotate_img_square, rotate_img
+from mantis.image.rotations import rotate_img_square, rotate_img
 
 IMG00 = IMG00_ROT_90 = IMG00_ROT_180 = IMG00_ROT_270 = np.array([])  # type: ignore
 IMG11 = IMG11_ROT_90 = IMG11_ROT_180 = IMG11_ROT_270 = np.array([1])

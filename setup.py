@@ -58,7 +58,7 @@ def pkg_setup():
         packages=find_packages("src"),
         package_dir={"": "src"},
         python_requires=">=3.10",
-        entry_points={"console_scripts": [f"mantis = tmap_defectdetector.main:main"]},
+        entry_points={"console_scripts": [f"mantis = mantis.main:main"]},
     )
 
 
