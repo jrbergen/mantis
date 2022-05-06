@@ -7,7 +7,7 @@ in a configuration file.
 
 It is currently an early work in progress and is being tested on a [bencmark dataset](https://github.com/zae-bayern/elpv-dataset).
 It will have a GUI, TUI and CLI, with only the TUI using 
- [Textual](https://github.com/Textualize/textual) being implemented currently.
+ [Textual](https://github.com/Textualize/textual) being partially implemented currently.
 
 ![Mantis's early TUI interface](data/mantis_tui_example.webp)
 
